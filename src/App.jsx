@@ -60,6 +60,7 @@ function App() {
           effect: '-',
           rssi: null,
           channel: null,
+          live: false,
         }
       }
 
@@ -85,6 +86,7 @@ function App() {
         effectName: state.seg && state.seg[0] && state.seg[0].name ? state.seg[0].name : '-',
         rssi: info.wifi?.rssi || null,
         channel: info.wifi?.channel || null,
+        live: info.live || false,
       }
     } catch (err) {
       return {
@@ -98,6 +100,7 @@ function App() {
         effect: '-',
         rssi: null,
         channel: null,
+        live: false,
       }
     }
   }
@@ -152,16 +155,39 @@ function App() {
     }
   }
 
-  // Refresh automatique toutes les 10 secondes
+  // Fonction pour rafraîchir les devices un par un
+  const refreshDevices = async () => {
+    if (devices.length === 0) return
+
+    // Parcourir les devices existants et les rafraîchir un par un
+    for (let i = 0; i < devices.length; i++) {
+      const device = devices[i]
+
+      // Attendre 1 seconde avant de scanner le prochain device (sauf pour le premier)
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+
+      // Récupérer les nouvelles données pour ce device
+      const updatedDevice = await fetchWledDevice(device.ip)
+
+      // Mettre à jour uniquement ce device dans la liste
+      setDevices(currentDevices =>
+        currentDevices.map(d => d.ip === updatedDevice.ip ? updatedDevice : d)
+      )
+    }
+  }
+
+  // Refresh automatique - lance un cycle complet toutes les 10 secondes
   useEffect(() => {
     if (devices.length === 0) return
 
     const interval = setInterval(() => {
-      scanNetwork(true) // Garder les devices existants pendant le refresh
+      refreshDevices()
     }, 10000) // 10 secondes
 
     return () => clearInterval(interval)
-  }, [devices.length, startIp, endIp])
+  }, [devices.length])
 
   const onlineDevices = devices.filter(d => d.status === 'online')
   const onDevices = onlineDevices.filter(d => d.on)
@@ -234,6 +260,7 @@ function App() {
                 <th>Luminosité</th>
                 <th>Couleur</th>
                 <th>Effet</th>
+                <th>Live</th>
                 <th>Signal WiFi</th>
                 <th>Canal</th>
               </tr>
@@ -278,6 +305,13 @@ function App() {
                       )}
                     </td>
                     <td>{device.effectName || device.effect}</td>
+                    <td>
+                      {device.live ? (
+                        <span className="status-badge status-online">🔴 Live</span>
+                      ) : (
+                        <span className="status-badge status-offline">⚫ Off</span>
+                      )}
+                    </td>
                     <td>
                       {signalQuality ? (
                         <span className={`signal-badge ${signalQuality.class}`}>
