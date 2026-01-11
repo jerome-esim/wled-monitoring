@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function App() {
   const [startIp, setStartIp] = useState('192.168.8.10')
@@ -6,6 +6,15 @@ function App() {
   const [devices, setDevices] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  // Fonction pour évaluer le niveau du signal WiFi
+  const getSignalQuality = (rssi) => {
+    if (rssi >= -50) return { level: 'Excellent', class: 'signal-excellent' }
+    if (rssi >= -60) return { level: 'Bon', class: 'signal-good' }
+    if (rssi >= -70) return { level: 'Moyen', class: 'signal-medium' }
+    if (rssi >= -80) return { level: 'Faible', class: 'signal-weak' }
+    return { level: 'Très faible', class: 'signal-bad' }
+  }
 
   // Fonction pour convertir une IP en nombre
   const ipToNumber = (ip) => {
@@ -49,6 +58,8 @@ function App() {
           brightness: 0,
           color: null,
           effect: '-',
+          rssi: null,
+          channel: null,
         }
       }
 
@@ -72,6 +83,8 @@ function App() {
         color,
         effect: state.seg && state.seg[0] ? state.seg[0].fx || 0 : 0,
         effectName: state.seg && state.seg[0] && state.seg[0].name ? state.seg[0].name : '-',
+        rssi: info.wifi?.rssi || null,
+        channel: info.wifi?.channel || null,
       }
     } catch (err) {
       return {
@@ -83,15 +96,19 @@ function App() {
         brightness: 0,
         color: null,
         effect: '-',
+        rssi: null,
+        channel: null,
       }
     }
   }
 
   // Fonction pour scanner la plage d'IP
-  const scanNetwork = async () => {
+  const scanNetwork = async (keepExisting = false) => {
     setError(null)
     setLoading(true)
-    setDevices([])
+    if (!keepExisting) {
+      setDevices([])
+    }
 
     try {
       const startNum = ipToNumber(startIp)
@@ -134,6 +151,17 @@ function App() {
       setLoading(false)
     }
   }
+
+  // Refresh automatique toutes les 10 secondes
+  useEffect(() => {
+    if (devices.length === 0) return
+
+    const interval = setInterval(() => {
+      scanNetwork(true) // Garder les devices existants pendant le refresh
+    }, 10000) // 10 secondes
+
+    return () => clearInterval(interval)
+  }, [devices.length, startIp, endIp])
 
   const onlineDevices = devices.filter(d => d.status === 'online')
   const onDevices = onlineDevices.filter(d => d.on)
@@ -206,39 +234,63 @@ function App() {
                 <th>Luminosité</th>
                 <th>Couleur</th>
                 <th>Effet</th>
+                <th>Signal WiFi</th>
+                <th>Canal</th>
               </tr>
             </thead>
             <tbody>
-              {devices.map((device) => (
-                <tr key={device.ip}>
-                  <td>{device.ip}</td>
-                  <td>
-                    <span
-                      className={`status-badge ${
-                        device.status === 'online' ? 'status-online' : 'status-offline'
-                      }`}
-                    >
-                      {device.status === 'online' ? 'En ligne' : 'Hors ligne'}
-                    </span>
-                  </td>
-                  <td>{device.name}</td>
-                  <td>{device.version}</td>
-                  <td>{device.on ? '🟢 Allumé' : '⚫ Éteint'}</td>
-                  <td>{device.status === 'online' ? `${Math.round((device.brightness / 255) * 100)}%` : '-'}</td>
-                  <td>
-                    {device.color ? (
+              {devices.map((device) => {
+                const signalQuality = device.rssi !== null ? getSignalQuality(device.rssi) : null
+                return (
+                  <tr key={device.ip}>
+                    <td>
+                      <a
+                        href={`http://${device.ip}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ip-link"
+                      >
+                        {device.ip}
+                      </a>
+                    </td>
+                    <td>
                       <span
-                        className="color-preview"
-                        style={{ backgroundColor: device.color }}
-                        title={device.color}
-                      />
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td>{device.effectName || device.effect}</td>
-                </tr>
-              ))}
+                        className={`status-badge ${
+                          device.status === 'online' ? 'status-online' : 'status-offline'
+                        }`}
+                      >
+                        {device.status === 'online' ? 'En ligne' : 'Hors ligne'}
+                      </span>
+                    </td>
+                    <td>{device.name}</td>
+                    <td>{device.version}</td>
+                    <td>{device.on ? '🟢 Allumé' : '⚫ Éteint'}</td>
+                    <td>{device.status === 'online' ? `${Math.round((device.brightness / 255) * 100)}%` : '-'}</td>
+                    <td>
+                      {device.color ? (
+                        <span
+                          className="color-preview"
+                          style={{ backgroundColor: device.color }}
+                          title={device.color}
+                        />
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td>{device.effectName || device.effect}</td>
+                    <td>
+                      {signalQuality ? (
+                        <span className={`signal-badge ${signalQuality.class}`}>
+                          {device.rssi} dBm ({signalQuality.level})
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td>{device.channel || '-'}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
