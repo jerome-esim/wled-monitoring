@@ -7,6 +7,11 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  // États pour le contrôle global
+  const [globalBrightness, setGlobalBrightness] = useState(128)
+  const [globalColor, setGlobalColor] = useState('#FF0000')
+  const [sendingCommand, setSendingCommand] = useState(false)
+
   // Fonction pour évaluer le niveau du signal WiFi
   const getSignalQuality = (rssi) => {
     if (rssi >= -50) return { level: 'Excellent', class: 'signal-excellent' }
@@ -178,6 +183,123 @@ function App() {
     }
   }
 
+  // Fonction pour envoyer une commande à un device WLED
+  const sendCommandToDevice = async (ip, command) => {
+    try {
+      const response = await fetch(`http://${ip}/json/state`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(command),
+      })
+      return response.ok
+    } catch (err) {
+      console.error(`Erreur envoi commande à ${ip}:`, err)
+      return false
+    }
+  }
+
+  // Fonction pour convertir une couleur hex en RGB
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    return result
+      ? [
+          parseInt(result[1], 16),
+          parseInt(result[2], 16),
+          parseInt(result[3], 16),
+        ]
+      : [255, 255, 255]
+  }
+
+  // Appliquer la luminosité à tous les devices en ligne
+  const applyBrightnessToAll = async () => {
+    setSendingCommand(true)
+    const onlineDevicesList = devices.filter(d => d.status === 'online')
+
+    for (const device of onlineDevicesList) {
+      await sendCommandToDevice(device.ip, { bri: globalBrightness })
+    }
+
+    setSendingCommand(false)
+    // Rafraîchir immédiatement pour voir les changements
+    setTimeout(() => refreshDevices(), 500)
+  }
+
+  // Appliquer la couleur à tous les devices en ligne
+  const applyColorToAll = async () => {
+    setSendingCommand(true)
+    const onlineDevicesList = devices.filter(d => d.status === 'online')
+    const rgb = hexToRgb(globalColor)
+
+    for (const device of onlineDevicesList) {
+      await sendCommandToDevice(device.ip, {
+        seg: [{ col: [rgb] }]
+      })
+    }
+
+    setSendingCommand(false)
+    setTimeout(() => refreshDevices(), 500)
+  }
+
+  // Allumer tous les devices
+  const turnOnAll = async () => {
+    setSendingCommand(true)
+    const onlineDevicesList = devices.filter(d => d.status === 'online')
+
+    for (const device of onlineDevicesList) {
+      await sendCommandToDevice(device.ip, { on: true })
+    }
+
+    setSendingCommand(false)
+    setTimeout(() => refreshDevices(), 500)
+  }
+
+  // Éteindre tous les devices
+  const turnOffAll = async () => {
+    setSendingCommand(true)
+    const onlineDevicesList = devices.filter(d => d.status === 'online')
+
+    for (const device of onlineDevicesList) {
+      await sendCommandToDevice(device.ip, { on: false })
+    }
+
+    setSendingCommand(false)
+    setTimeout(() => refreshDevices(), 500)
+  }
+
+  // Preset : Mode nuit (20% de luminosité)
+  const applyNightMode = async () => {
+    setSendingCommand(true)
+    const onlineDevicesList = devices.filter(d => d.status === 'online')
+
+    for (const device of onlineDevicesList) {
+      await sendCommandToDevice(device.ip, {
+        on: true,
+        bri: 51 // 20% de 255
+      })
+    }
+
+    setSendingCommand(false)
+    setTimeout(() => refreshDevices(), 500)
+  }
+
+  // Preset : Blanc chaud
+  const applyWarmWhite = async () => {
+    setSendingCommand(true)
+    const onlineDevicesList = devices.filter(d => d.status === 'online')
+
+    for (const device of onlineDevicesList) {
+      await sendCommandToDevice(device.ip, {
+        on: true,
+        seg: [{ col: [[255, 147, 41]] }] // Orange chaud
+      })
+    }
+
+    setSendingCommand(false)
+    setTimeout(() => refreshDevices(), 500)
+  }
+
   // Refresh automatique - lance un cycle complet toutes les 10 secondes
   useEffect(() => {
     if (devices.length === 0) return
@@ -227,6 +349,93 @@ function App() {
       </div>
 
       {error && <div className="error">{error}</div>}
+
+      {/* Panneau de contrôle global */}
+      {onlineDevices.length > 0 && (
+        <div className="global-control">
+          <h2>🎛️ Contrôle Global ({onlineDevices.length} devices en ligne)</h2>
+
+          <div className="control-section">
+            <h3>Actions rapides</h3>
+            <div className="quick-actions">
+              <button
+                onClick={turnOnAll}
+                disabled={sendingCommand}
+                className="btn-success"
+              >
+                ⚡ Tout Allumer
+              </button>
+              <button
+                onClick={turnOffAll}
+                disabled={sendingCommand}
+                className="btn-danger"
+              >
+                ⚫ Tout Éteindre
+              </button>
+              <button
+                onClick={applyNightMode}
+                disabled={sendingCommand}
+                className="btn-night"
+              >
+                🌙 Mode Nuit (20%)
+              </button>
+              <button
+                onClick={applyWarmWhite}
+                disabled={sendingCommand}
+                className="btn-warm"
+              >
+                💡 Blanc Chaud
+              </button>
+            </div>
+          </div>
+
+          <div className="control-section">
+            <h3>Luminosité</h3>
+            <div className="slider-group">
+              <input
+                type="range"
+                min="1"
+                max="255"
+                value={globalBrightness}
+                onChange={(e) => setGlobalBrightness(parseInt(e.target.value))}
+                className="slider"
+                disabled={sendingCommand}
+              />
+              <span className="slider-value">
+                {Math.round((globalBrightness / 255) * 100)}%
+              </span>
+              <button
+                onClick={applyBrightnessToAll}
+                disabled={sendingCommand}
+                className="btn-apply"
+              >
+                Appliquer à tous
+              </button>
+            </div>
+          </div>
+
+          <div className="control-section">
+            <h3>Couleur</h3>
+            <div className="color-group">
+              <input
+                type="color"
+                value={globalColor}
+                onChange={(e) => setGlobalColor(e.target.value)}
+                className="color-picker"
+                disabled={sendingCommand}
+              />
+              <span className="color-value">{globalColor.toUpperCase()}</span>
+              <button
+                onClick={applyColorToAll}
+                disabled={sendingCommand}
+                className="btn-apply"
+              >
+                Appliquer à tous
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {devices.length > 0 && (
         <div className="stats">
