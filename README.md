@@ -13,6 +13,8 @@ Une application React pour monitorer plusieurs instances WLED sur votre réseau 
 - 🔄 Refresh automatique avec mise à jour séquentielle (1 device/seconde)
 - 📡 Informations WiFi détaillées (signal RSSI avec niveau de qualité, canal)
 - 🔗 Liens cliquables sur les adresses IP pour accéder directement à l'interface WLED
+- 🎛️ Panneau de contrôle global pour piloter tous les devices simultanément (luminosité, couleur, on/off)
+- 🚀 Presets rapides (Mode nuit, Blanc chaud, Tout allumer/éteindre)
 
 ## Configuration par défaut
 
@@ -57,6 +59,23 @@ npm run preview
 2. **Cliquer sur Scanner** : Lance le scan de la plage d'IP
 3. **Consulter les résultats** : Le tableau affiche tous les devices détectés avec refresh automatique progressif (1 device mis à jour par seconde)
 4. **Accéder à WLED** : Cliquez sur une adresse IP pour ouvrir l'interface WLED du device dans un nouvel onglet
+5. **Contrôle global** : Utilisez le panneau de contrôle pour piloter tous les devices en ligne simultanément
+
+## Panneau de Contrôle Global
+
+Le panneau de contrôle global apparaît dès qu'au moins un device est en ligne. Il permet de :
+
+### Actions Rapides
+- **⚡ Tout Allumer** : Allume tous les devices en ligne
+- **⚫ Tout Éteindre** : Éteint tous les devices en ligne
+- **🌙 Mode Nuit** : Règle tous les devices à 20% de luminosité
+- **💡 Blanc Chaud** : Applique une couleur blanc chaud (255, 147, 41) à tous les devices
+
+### Contrôles Personnalisés
+- **Luminosité** : Ajustez le slider (0-100%) et cliquez sur "Appliquer à tous" pour définir la luminosité de tous les devices
+- **Couleur** : Choisissez une couleur avec le color picker et cliquez sur "Appliquer à tous" pour l'appliquer à tous les devices
+
+**Note** : Les commandes sont envoyées séquentiellement à chaque device. Un refresh automatique est déclenché 500ms après l'application pour voir les changements.
 
 ## Informations affichées
 
@@ -76,8 +95,9 @@ Pour chaque device WLED détecté :
 ## API WLED utilisée
 
 L'application utilise l'API JSON de WLED :
-- `/json/info` : Informations du device (nom, version, mode live, infos WiFi : RSSI, canal)
-- `/json/state` : État actuel (on/off, luminosité, couleurs, effets)
+- **GET** `/json/info` : Informations du device (nom, version, mode live, infos WiFi : RSSI, canal)
+- **GET** `/json/state` : État actuel (on/off, luminosité, couleurs, effets)
+- **POST** `/json/state` : Envoi de commandes pour contrôler les devices (luminosité, couleur, on/off)
 
 ## Limitations
 
