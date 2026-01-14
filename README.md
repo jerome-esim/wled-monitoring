@@ -13,8 +13,9 @@ Une application React pour monitorer plusieurs instances WLED sur votre réseau 
 - 🔄 Refresh automatique avec mise à jour séquentielle (1 device/seconde)
 - 📡 Informations WiFi détaillées (signal RSSI avec niveau de qualité, canal)
 - 🔗 Liens cliquables sur les adresses IP pour accéder directement à l'interface WLED
-- 🎛️ Panneau de contrôle global pour piloter tous les devices simultanément (luminosité, couleur, on/off)
+- 🎛️ Panneau de contrôle global pour piloter tous les devices simultanément (luminosité, couleur, effets, on/off)
 - 🚀 Presets rapides (Mode nuit, Blanc chaud, Tout allumer/éteindre)
+- ✨ Sélecteur d'effets WLED avec 26 effets populaires (Rainbow, Fire, Sparkle, etc.)
 
 ## Configuration par défaut
 
@@ -74,6 +75,7 @@ Le panneau de contrôle global apparaît dès qu'au moins un device est en ligne
 ### Contrôles Personnalisés
 - **Luminosité** : Ajustez le slider (0-100%) et cliquez sur "Appliquer à tous" pour définir la luminosité de tous les devices
 - **Couleur** : Choisissez une couleur avec le color picker et cliquez sur "Appliquer à tous" pour l'appliquer à tous les devices
+- **Effet** : Sélectionnez un effet WLED dans la liste déroulante (26 effets disponibles : Solid, Rainbow, Fire Flicker, etc.) et cliquez sur "Appliquer à tous"
 
 **Note** : Les commandes sont envoyées séquentiellement à chaque device. Un refresh automatique est déclenché 500ms après l'application pour voir les changements.
 
@@ -97,7 +99,7 @@ Pour chaque device WLED détecté :
 L'application utilise l'API JSON de WLED :
 - **GET** `/json/info` : Informations du device (nom, version, mode live, infos WiFi : RSSI, canal)
 - **GET** `/json/state` : État actuel (on/off, luminosité, couleurs, effets)
-- **POST** `/json/state` : Envoi de commandes pour contrôler les devices (luminosité, couleur, on/off)
+- **POST** `/json/state` : Envoi de commandes pour contrôler les devices (luminosité, couleur, effets, on/off)
 
 ## Limitations
 

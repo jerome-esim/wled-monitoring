@@ -10,7 +10,38 @@ function App() {
   // États pour le contrôle global
   const [globalBrightness, setGlobalBrightness] = useState(128)
   const [globalColor, setGlobalColor] = useState('#FF0000')
+  const [globalEffect, setGlobalEffect] = useState(0)
   const [sendingCommand, setSendingCommand] = useState(false)
+
+  // Liste des effets WLED les plus populaires
+  const wledEffects = [
+    { id: 0, name: 'Solid (Couleur unie)' },
+    { id: 1, name: 'Blink (Clignotement)' },
+    { id: 2, name: 'Breathe (Respiration)' },
+    { id: 3, name: 'Wipe (Balayage)' },
+    { id: 4, name: 'Wipe Random (Balayage aléatoire)' },
+    { id: 5, name: 'Random Colors (Couleurs aléatoires)' },
+    { id: 6, name: 'Sweep (Balayage coloré)' },
+    { id: 7, name: 'Dynamic (Dynamique)' },
+    { id: 8, name: 'Colorloop (Boucle de couleurs)' },
+    { id: 9, name: 'Rainbow (Arc-en-ciel)' },
+    { id: 10, name: 'Scan (Scanner)' },
+    { id: 11, name: 'Dual Scan (Double scanner)' },
+    { id: 12, name: 'Fade (Fondu)' },
+    { id: 16, name: 'Running (Course)' },
+    { id: 17, name: 'Twinkle (Scintillement)' },
+    { id: 18, name: 'Twinkle Random (Scintillement aléatoire)' },
+    { id: 19, name: 'Twinkle Fade (Scintillement fondu)' },
+    { id: 20, name: 'Sparkle (Étincelles)' },
+    { id: 24, name: 'Chase (Poursuite)' },
+    { id: 28, name: 'Chase Rainbow (Poursuite arc-en-ciel)' },
+    { id: 43, name: 'Fire Flicker (Flammes)' },
+    { id: 44, name: 'Gradient (Dégradé)' },
+    { id: 45, name: 'Loading (Chargement)' },
+    { id: 46, name: 'Police (Gyrophare)' },
+    { id: 73, name: 'Plasma (Plasma)' },
+    { id: 110, name: 'Flow (Flux)' },
+  ]
 
   // Fonction pour évaluer le niveau du signal WiFi
   const getSignalQuality = (rssi) => {
@@ -300,6 +331,21 @@ function App() {
     setTimeout(() => refreshDevices(), 500)
   }
 
+  // Appliquer l'effet à tous les devices en ligne
+  const applyEffectToAll = async () => {
+    setSendingCommand(true)
+    const onlineDevicesList = devices.filter(d => d.status === 'online')
+
+    for (const device of onlineDevicesList) {
+      await sendCommandToDevice(device.ip, {
+        seg: [{ fx: globalEffect }]
+      })
+    }
+
+    setSendingCommand(false)
+    setTimeout(() => refreshDevices(), 500)
+  }
+
   // Refresh automatique - lance un cycle complet toutes les 10 secondes
   useEffect(() => {
     if (devices.length === 0) return
@@ -427,6 +473,31 @@ function App() {
               <span className="color-value">{globalColor.toUpperCase()}</span>
               <button
                 onClick={applyColorToAll}
+                disabled={sendingCommand}
+                className="btn-apply"
+              >
+                Appliquer à tous
+              </button>
+            </div>
+          </div>
+
+          <div className="control-section">
+            <h3>Effet</h3>
+            <div className="effect-group">
+              <select
+                value={globalEffect}
+                onChange={(e) => setGlobalEffect(parseInt(e.target.value))}
+                className="effect-select"
+                disabled={sendingCommand}
+              >
+                {wledEffects.map((effect) => (
+                  <option key={effect.id} value={effect.id}>
+                    {effect.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={applyEffectToAll}
                 disabled={sendingCommand}
                 className="btn-apply"
               >
