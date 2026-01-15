@@ -3,7 +3,7 @@ import { useAppStore } from '../../store/appStore';
 
 export const StripCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { strips, activeShaderId, shaders, matrixData } = useAppStore();
+  const { strips, activeShaderId, shaders, matrixData, layers } = useAppStore();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -69,7 +69,9 @@ export const StripCanvas: React.FC = () => {
     }
 
     // Draw the LED matrix if we have data
-    if (matrixData && activeShader) {
+    // Check if we have matrixData AND (activeShader OR layers)
+    const hasContent = activeShader || (layers && layers.length > 0);
+    if (matrixData && hasContent) {
       // Matrix data format: [strip0_led0_R, strip0_led0_G, strip0_led0_B, ...]
       // Organized as rows (each row is a horizontal line across all strips)
 
@@ -110,7 +112,7 @@ export const StripCanvas: React.FC = () => {
       );
     }
 
-  }, [strips, activeShaderId, shaders, matrixData]);
+  }, [strips, activeShaderId, shaders, matrixData, layers]);
 
   return (
     <div className="h-full bg-gray-800 rounded-lg overflow-hidden">
