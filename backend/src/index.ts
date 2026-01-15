@@ -62,6 +62,38 @@ app.post('/api/artnet/send', async (req, res) => {
   }
 });
 
+// Endpoint to receive batched rendered pixel data from frontend
+app.post('/api/artnet/send-batch', async (req, res) => {
+  try {
+    const { strips } = req.body;
+
+    if (!strips || !Array.isArray(strips)) {
+      return res.status(400).json({ error: 'Missing or invalid strips array' });
+    }
+
+    // Process all strips in parallel
+    const promises = strips.map(async ({ stripId, rgbData }: any) => {
+      if (!stripId || !rgbData) {
+        return;
+      }
+
+      // Convert array to Uint8Array
+      const data = new Uint8Array(rgbData);
+
+      await socketServer.sendRenderedData(stripId, data);
+    });
+
+    await Promise.all(promises);
+
+    res.json({ success: true, count: strips.length });
+  } catch (error) {
+    console.error('Error sending batched Art-Net data:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // Start server
 httpServer.listen(PORT, () => {
   console.log(`

@@ -6,12 +6,17 @@ interface RendererMap {
   [stripId: number]: ShaderRenderer;
 }
 
+const TARGET_FPS = 40; // 40 FPS for Art-Net
+const FRAME_INTERVAL = 1000 / TARGET_FPS; // 25ms
+
 export const useRenderLoop = () => {
   const { strips, shaders, assignments, playbackState, globalUniforms, setPreviewData } =
     useAppStore();
   const renderersRef = useRef<RendererMap>({});
   const animationFrameRef = useRef<number>();
   const startTimeRef = useRef<number>(Date.now());
+  const lastFrameTimeRef = useRef<number>(Date.now());
+  const batchedDataRef = useRef<Map<number, Uint8Array>>(new Map());
 
   useEffect(() => {
     if (!playbackState.isPlaying) {
@@ -24,9 +29,23 @@ export const useRenderLoop = () => {
 
     // Start rendering loop
     startTimeRef.current = Date.now();
+    lastFrameTimeRef.current = Date.now();
 
     const renderLoop = () => {
-      const currentTime = (Date.now() - startTimeRef.current) / 1000; // Convert to seconds
+      const now = Date.now();
+      const deltaTime = now - lastFrameTimeRef.current;
+
+      // Throttle to target FPS
+      if (deltaTime < FRAME_INTERVAL) {
+        animationFrameRef.current = requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      lastFrameTimeRef.current = now - (deltaTime % FRAME_INTERVAL);
+      const currentTime = (now - startTimeRef.current) / 1000; // Convert to seconds
+
+      // Clear batched data
+      batchedDataRef.current.clear();
 
       // Render each strip that has a shader assigned
       assignments.forEach((assignment) => {
@@ -67,15 +86,20 @@ export const useRenderLoop = () => {
 
         // Render and get RGB data
         const rgbData = renderer.render();
+
         // Store for preview visualization
         setPreviewData(strip.id, rgbData);
 
+        // Batch data for sending
+        batchedDataRef.current.set(strip.id, rgbData);
+      });
 
-        // Send to backend via fetch (non-blocking)
-        sendArtNetData(strip.id, rgbData).catch((err) => {
+      // Send all batched data in one request
+      if (batchedDataRef.current.size > 0) {
+        sendBatchedArtNetData(batchedDataRef.current).catch((err) => {
           console.error('Failed to send Art-Net data:', err);
         });
-      });
+      }
 
       // Continue loop
       animationFrameRef.current = requestAnimationFrame(renderLoop);
@@ -108,20 +132,24 @@ export const useRenderLoop = () => {
   }, []);
 };
 
-// Helper function to send Art-Net data to backend
-async function sendArtNetData(stripId: number, rgbData: Uint8Array): Promise<void> {
+// Helper function to send batched Art-Net data to backend
+async function sendBatchedArtNetData(dataMap: Map<number, Uint8Array>): Promise<void> {
   try {
-    await fetch('/api/artnet/send', {
+    // Convert Map to array of {stripId, rgbData}
+    const batchedData = Array.from(dataMap.entries()).map(([stripId, rgbData]) => ({
+      stripId,
+      rgbData: Array.from(rgbData), // Convert Uint8Array to regular array for JSON
+    }));
+
+    await fetch('/api/artnet/send-batch', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        stripId,
-        rgbData: Array.from(rgbData), // Convert Uint8Array to regular array for JSON
-      }),
+      body: JSON.stringify({ strips: batchedData }),
     });
   } catch (error) {
-    throw error;
+    // Silently fail - backend might not be running
+    // Preview will still work
   }
 }
