@@ -1,19 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { useAppStore } from '../store/appStore';
-import { MatrixShaderRenderer } from '../services/matrixShaderEngine';
+import { LayeredShaderRenderer } from '../services/layeredShaderEngine';
 
 const TARGET_FPS = 40; // 40 FPS for Art-Net
 const FRAME_INTERVAL = 1000 / TARGET_FPS; // 25ms
 
 export const useRenderLoop = () => {
-  const { strips, shaders, activeShaderId, playbackState, globalUniforms, setMatrixData } =
+  const { strips, shaders, layers, playbackState, globalUniforms, setMatrixData } =
     useAppStore();
-  const rendererRef = useRef<MatrixShaderRenderer | null>(null);
+  const rendererRef = useRef<LayeredShaderRenderer | null>(null);
   const animationFrameRef = useRef<number>();
   const startTimeRef = useRef<number>(Date.now());
   const lastFrameTimeRef = useRef<number>(Date.now());
   const batchedDataRef = useRef<Map<number, Uint8Array>>(new Map());
-  const currentShaderIdRef = useRef<string | null>(null);
+  const layerHashRef = useRef<string>('');
 
   useEffect(() => {
     if (!playbackState.isPlaying) {
@@ -41,14 +41,8 @@ export const useRenderLoop = () => {
       lastFrameTimeRef.current = now - (deltaTime % FRAME_INTERVAL);
       const currentTime = (now - startTimeRef.current) / 1000; // Convert to seconds
 
-      // Check if we have strips and an active shader
-      if (strips.length === 0 || !activeShaderId) {
-        animationFrameRef.current = requestAnimationFrame(renderLoop);
-        return;
-      }
-
-      const activeShader = shaders.find((s) => s.id === activeShaderId);
-      if (!activeShader) {
+      // Check if we have strips and layers
+      if (strips.length === 0 || layers.length === 0) {
         animationFrameRef.current = requestAnimationFrame(renderLoop);
         return;
       }
@@ -57,37 +51,49 @@ export const useRenderLoop = () => {
       const stripCount = strips.length;
       const ledCount = strips[0]?.ledCount || 250; // Assuming all strips have same LED count
 
-      // Create or recreate renderer if needed
-      if (!rendererRef.current || currentShaderIdRef.current !== activeShaderId) {
-        if (rendererRef.current) {
-          rendererRef.current.dispose();
-        }
-        rendererRef.current = new MatrixShaderRenderer(stripCount, ledCount);
-        currentShaderIdRef.current = activeShaderId;
-
-        // Compile shader
-        const uniforms = {
-          ...globalUniforms,
-          time: currentTime,
-          resolution: [stripCount, ledCount] as [number, number],
-        };
-        const success = rendererRef.current.updateShader(activeShader.fragmentShader, uniforms);
-        if (!success) {
-          console.error('Failed to compile shader:', activeShaderId);
-          animationFrameRef.current = requestAnimationFrame(renderLoop);
-          return;
-        }
-      } else {
-        // Just update uniforms
-        const uniforms = {
-          ...globalUniforms,
-          time: currentTime,
-        };
-        rendererRef.current.updateUniforms(uniforms);
+      // Create renderer if needed
+      if (!rendererRef.current) {
+        rendererRef.current = new LayeredShaderRenderer(stripCount, ledCount);
       }
 
-      // Render the global matrix
-      const matrixData = rendererRef.current.render();
+      // Compute hash of layer configuration
+      const currentLayerHash = JSON.stringify(
+        layers.map(l => ({ id: l.id, shaderId: l.shaderId, enabled: l.enabled }))
+      );
+
+      // Update layers if configuration changed
+      if (currentLayerHash !== layerHashRef.current) {
+        layerHashRef.current = currentLayerHash;
+
+        // Add/update all enabled layers
+        layers.forEach(layer => {
+          const shader = shaders.find(s => s.id === layer.shaderId);
+          if (shader && layer.enabled) {
+            const layerUniforms = {
+              ...globalUniforms,
+              ...layer.params,
+              time: currentTime,
+              resolution: [stripCount, ledCount] as [number, number],
+            };
+            rendererRef.current!.addLayer(layer.id, shader.fragmentShader, layerUniforms);
+          }
+        });
+      }
+
+      // Update uniforms for all layers
+      layers.forEach(layer => {
+        if (layer.enabled) {
+          const layerUniforms = {
+            ...globalUniforms,
+            ...layer.params,
+            time: currentTime,
+          };
+          rendererRef.current!.updateLayerUniforms(layer.id, layerUniforms);
+        }
+      });
+
+      // Render all layers composited
+      const matrixData = rendererRef.current.render(layers);
 
       // Store for preview visualization
       setMatrixData(matrixData);
@@ -123,7 +129,7 @@ export const useRenderLoop = () => {
     playbackState.isPlaying,
     strips,
     shaders,
-    activeShaderId,
+    layers,
     globalUniforms,
     setMatrixData,
   ]);

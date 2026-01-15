@@ -60,6 +60,19 @@ export interface PresetConfig {
   createdAt: number;
 }
 
+export type BlendMode = 'normal' | 'add' | 'multiply' | 'screen';
+
+export interface ShaderLayer {
+  id: string;
+  shaderId: string;
+  name: string;
+  enabled: boolean;
+  opacity: number; // 0-1
+  blendMode: BlendMode;
+  order: number; // lower = bottom, higher = top
+  params: Partial<ShaderUniforms>; // Layer-specific parameters
+}
+
 // WebSocket Events
 export type WSClientEvents =
   | { event: 'config:update'; data: StripConfig[] }

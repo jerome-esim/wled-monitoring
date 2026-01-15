@@ -4,6 +4,7 @@ import type {
   ShaderConfig,
   ShaderUniforms,
   PlaybackState,
+  ShaderLayer,
 } from '@shared/types';
 
 interface AppState {
@@ -21,11 +22,21 @@ interface AppState {
   updateShaderInStore: (id: string, updates: Partial<ShaderConfig>) => void;
   removeShader: (id: string) => void;
 
-  // Active global shader (one shader for all strips)
+  // Active global shader (one shader for all strips) - kept for backward compatibility
   activeShaderId: string | null;
   setActiveShaderId: (id: string | null) => void;
   selectedShaderId: string | null;
   setSelectedShaderId: (id: string | null) => void;
+
+  // Layers (new multi-shader system)
+  layers: ShaderLayer[];
+  addLayer: (shaderId: string, name: string) => void;
+  removeLayer: (layerId: string) => void;
+  updateLayer: (layerId: string, updates: Partial<ShaderLayer>) => void;
+  toggleLayer: (layerId: string) => void;
+  moveLayer: (layerId: string, direction: 'up' | 'down') => void;
+  selectedLayerId: string | null;
+  setSelectedLayerId: (id: string | null) => void;
 
   // Playback
   playbackState: PlaybackState;
@@ -78,11 +89,61 @@ export const useAppStore = create<AppState>((set) => ({
       shaders: state.shaders.filter((s) => s.id !== id),
     })),
 
-  // Active shader (global for all strips)
+  // Active shader (global for all strips) - kept for backward compatibility
   activeShaderId: null,
   setActiveShaderId: (id) => set({ activeShaderId: id }),
   selectedShaderId: null,
   setSelectedShaderId: (id) => set({ selectedShaderId: id }),
+
+  // Layers
+  layers: [],
+  addLayer: (shaderId, name) =>
+    set((state) => {
+      const maxOrder = state.layers.reduce((max, l) => Math.max(max, l.order), -1);
+      const newLayer: ShaderLayer = {
+        id: `layer-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        shaderId,
+        name,
+        enabled: true,
+        opacity: 1.0,
+        blendMode: state.layers.length === 0 ? 'normal' : 'add',
+        order: maxOrder + 1,
+        params: {},
+      };
+      return { layers: [...state.layers, newLayer] };
+    }),
+  removeLayer: (layerId) =>
+    set((state) => ({
+      layers: state.layers.filter((l) => l.id !== layerId),
+    })),
+  updateLayer: (layerId, updates) =>
+    set((state) => ({
+      layers: state.layers.map((l) => (l.id === layerId ? { ...l, ...updates } : l)),
+    })),
+  toggleLayer: (layerId) =>
+    set((state) => ({
+      layers: state.layers.map((l) =>
+        l.id === layerId ? { ...l, enabled: !l.enabled } : l
+      ),
+    })),
+  moveLayer: (layerId, direction) =>
+    set((state) => {
+      const layers = [...state.layers].sort((a, b) => a.order - b.order);
+      const index = layers.findIndex((l) => l.id === layerId);
+      if (index === -1) return state;
+
+      const newIndex = direction === 'up' ? index + 1 : index - 1;
+      if (newIndex < 0 || newIndex >= layers.length) return state;
+
+      // Swap orders
+      const temp = layers[index].order;
+      layers[index].order = layers[newIndex].order;
+      layers[newIndex].order = temp;
+
+      return { layers };
+    }),
+  selectedLayerId: null,
+  setSelectedLayerId: (id) => set({ selectedLayerId: id }),
 
   // Playback
   playbackState: {

@@ -4,13 +4,16 @@ import { useSocket } from '../../hooks/useSocket';
 import type { ShaderConfig } from '@shared/types';
 
 export const ShaderLibrary: React.FC = () => {
-  const { shaders, activeShaderId, setActiveShaderId, selectedShaderId, setSelectedShaderId } = useAppStore();
+  const { shaders, layers, addLayer, selectedShaderId, setSelectedShaderId } = useAppStore();
   const { createShader, deleteShader } = useSocket();
 
   const handleShaderClick = (shaderId: string) => {
-    // Set as active shader (for rendering)
-    setActiveShaderId(shaderId);
-    // Also select for editing
+    // Add shader as a new layer
+    const shader = shaders.find(s => s.id === shaderId);
+    if (shader) {
+      addLayer(shaderId, `${shader.name} Layer`);
+    }
+    // Select for editing
     setSelectedShaderId(shaderId);
   };
 
@@ -51,9 +54,6 @@ void main() {
       if (selectedShaderId === id) {
         setSelectedShaderId(null);
       }
-      if (activeShaderId === id) {
-        setActiveShaderId(null);
-      }
     }
   };
 
@@ -84,7 +84,7 @@ void main() {
               {shaders
                 .filter((s) => s.category === category)
                 .map((shader) => {
-                  const isActive = activeShaderId === shader.id;
+                  const isInLayers = layers.some(l => l.shaderId === shader.id);
                   const isSelected = selectedShaderId === shader.id;
 
                   return (
@@ -92,15 +92,15 @@ void main() {
                       key={shader.id}
                       onClick={() => handleShaderClick(shader.id)}
                       className={`p-3 rounded cursor-pointer transition-colors group flex items-center justify-between ${
-                        isActive
-                          ? 'bg-green-600 text-white'
-                          : isSelected
+                        isSelected
                           ? 'bg-blue-600 text-white'
+                          : isInLayers
+                          ? 'bg-green-700 text-white'
                           : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        {isActive && <span className="text-xs">▶</span>}
+                        {isInLayers && <span className="text-xs">📋</span>}
                         <span className="font-medium">{shader.name}</span>
                       </div>
                       <button

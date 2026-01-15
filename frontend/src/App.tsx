@@ -6,6 +6,7 @@ import { ShaderLibrary } from './components/ShaderLibrary/ShaderLibrary';
 import { ShaderEditor } from './components/ShaderEditor/ShaderEditor';
 import { StripCanvas } from './components/Canvas/StripCanvas';
 import { Controls } from './components/Controls/Controls';
+import { LayerManager } from './components/LayerManager/LayerManager';
 import type { ShaderConfig, LayoutConfig } from '@shared/types';
 
 // Jerome's default configuration - 12 strips
@@ -92,9 +93,10 @@ function App() {
           </div>
         </div>
 
-        {/* Right Sidebar - Controls */}
-        <div className="col-span-3 overflow-y-auto">
+        {/* Right Sidebar - Controls and Layers */}
+        <div className="col-span-3 overflow-y-auto space-y-4">
           <Controls />
+          <LayerManager />
         </div>
       </div>
     </div>
