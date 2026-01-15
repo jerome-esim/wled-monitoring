@@ -1,6 +1,15 @@
 import * as THREE from 'three';
 import type { ShaderUniforms, ShaderLayer, BlendMode } from '@shared/types';
-import { MatrixShaderRenderer } from './matrixShaderEngine';
+
+/**
+ * Layer data: material + render target for each layer
+ */
+interface LayerData {
+  material: THREE.ShaderMaterial;
+  renderTarget: THREE.WebGLRenderTarget;
+  mesh: THREE.Mesh;
+  scene: THREE.Scene;
+}
 
 /**
  * Layered Shader Renderer
@@ -9,10 +18,10 @@ import { MatrixShaderRenderer } from './matrixShaderEngine';
 export class LayeredShaderRenderer {
   private stripCount: number;
   private ledCount: number;
-  private layers: Map<string, MatrixShaderRenderer> = new Map();
-  private finalRenderer: THREE.WebGLRenderer;
+  private layers: Map<string, LayerData> = new Map();
+  private renderer: THREE.WebGLRenderer;  // Single shared renderer
   private finalRenderTarget: THREE.WebGLRenderTarget;
-  private scene: THREE.Scene;
+  private compositeScene: THREE.Scene;
   private camera: THREE.OrthographicCamera;
   private composeMaterial: THREE.ShaderMaterial;
   private plane: THREE.Mesh;
@@ -21,14 +30,14 @@ export class LayeredShaderRenderer {
     this.stripCount = stripCount;
     this.ledCount = ledCount;
 
-    // Create final compositing renderer
-    this.finalRenderer = new THREE.WebGLRenderer({
+    // Create single shared renderer for all layers AND compositing
+    this.renderer = new THREE.WebGLRenderer({
       antialias: false,
       alpha: false,
     });
-    this.finalRenderer.setSize(stripCount, ledCount);
+    this.renderer.setSize(stripCount, ledCount);
 
-    // Create final render target
+    // Create final render target for composite
     this.finalRenderTarget = new THREE.WebGLRenderTarget(stripCount, ledCount, {
       minFilter: THREE.NearestFilter,
       magFilter: THREE.NearestFilter,
@@ -37,7 +46,7 @@ export class LayeredShaderRenderer {
     });
 
     // Create scene for compositing
-    this.scene = new THREE.Scene();
+    this.compositeScene = new THREE.Scene();
     this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
     // Create plane for compositing
@@ -153,30 +162,119 @@ export class LayeredShaderRenderer {
     });
 
     this.plane = new THREE.Mesh(geometry, this.composeMaterial);
-    this.scene.add(this.plane);
+    this.compositeScene.add(this.plane);
   }
 
   /**
    * Add or update a layer
    */
   addLayer(layerId: string, fragmentShader: string, uniforms: Partial<ShaderUniforms>): boolean {
-    let renderer = this.layers.get(layerId);
+    let layerData = this.layers.get(layerId);
 
-    if (!renderer) {
-      renderer = new MatrixShaderRenderer(this.stripCount, this.ledCount);
-      this.layers.set(layerId, renderer);
+    if (!layerData) {
+      // Create new layer with its own scene and render target
+      const scene = new THREE.Scene();
+      const geometry = new THREE.PlaneGeometry(2, 2);
+
+      const renderTarget = new THREE.WebGLRenderTarget(this.stripCount, this.ledCount, {
+        minFilter: THREE.NearestFilter,
+        magFilter: THREE.NearestFilter,
+        format: THREE.RGBAFormat,
+        type: THREE.UnsignedByteType,
+      });
+
+      // Vertex shader (passthrough UV)
+      const vertexShader = `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `;
+
+      // Create shader uniforms
+      const shaderUniforms: Record<string, THREE.IUniform> = {
+        time: { value: uniforms.time || 0 },
+        bpm: { value: uniforms.bpm || 120 },
+        resolution: { value: new THREE.Vector2(this.stripCount, this.ledCount) },
+        color1: {
+          value: new THREE.Vector4(...(uniforms.color1 || [1, 1, 1, 1])),
+        },
+        color2: {
+          value: new THREE.Vector4(...(uniforms.color2 || [1, 1, 1, 1])),
+        },
+        speed: { value: uniforms.speed || 1.0 },
+        intensity: { value: (uniforms as any).intensity || 1.0 },
+        direction: {
+          value: new THREE.Vector2(...((uniforms as any).direction || [1.0, 0.0]))
+        },
+      };
+
+      // Create material with user's fragment shader
+      const material = new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader,
+        uniforms: shaderUniforms,
+      });
+
+      const mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+
+      layerData = { material, renderTarget, mesh, scene };
+      this.layers.set(layerId, layerData);
+
+      console.log('[LayeredRenderer] Created new layer:', layerId);
+    } else {
+      // Update existing layer material if needed
+      // For now, we'll recreate the material
+      const vertexShader = `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `;
+
+      const shaderUniforms: Record<string, THREE.IUniform> = {
+        time: { value: uniforms.time || 0 },
+        bpm: { value: uniforms.bpm || 120 },
+        resolution: { value: new THREE.Vector2(this.stripCount, this.ledCount) },
+        color1: {
+          value: new THREE.Vector4(...(uniforms.color1 || [1, 1, 1, 1])),
+        },
+        color2: {
+          value: new THREE.Vector4(...(uniforms.color2 || [1, 1, 1, 1])),
+        },
+        speed: { value: uniforms.speed || 1.0 },
+        intensity: { value: (uniforms as any).intensity || 1.0 },
+        direction: {
+          value: new THREE.Vector2(...((uniforms as any).direction || [1.0, 0.0]))
+        },
+      };
+
+      layerData.material.dispose();
+      layerData.material = new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader,
+        uniforms: shaderUniforms,
+      });
+      layerData.mesh.material = layerData.material;
+
+      console.log('[LayeredRenderer] Updated layer:', layerId);
     }
 
-    return renderer.updateShader(fragmentShader, uniforms);
+    return true;
   }
 
   /**
    * Remove a layer
    */
   removeLayer(layerId: string): void {
-    const renderer = this.layers.get(layerId);
-    if (renderer) {
-      renderer.dispose();
+    const layerData = this.layers.get(layerId);
+    if (layerData) {
+      layerData.material.dispose();
+      layerData.renderTarget.dispose();
+      layerData.mesh.geometry.dispose();
       this.layers.delete(layerId);
     }
   }
@@ -185,9 +283,33 @@ export class LayeredShaderRenderer {
    * Update layer uniforms
    */
   updateLayerUniforms(layerId: string, uniforms: Partial<ShaderUniforms>): void {
-    const renderer = this.layers.get(layerId);
-    if (renderer) {
-      renderer.updateUniforms(uniforms);
+    const layerData = this.layers.get(layerId);
+    if (!layerData) return;
+
+    const material = layerData.material;
+    if (uniforms.time !== undefined) {
+      material.uniforms.time.value = uniforms.time;
+    }
+    if (uniforms.bpm !== undefined) {
+      material.uniforms.bpm.value = uniforms.bpm;
+    }
+    if (uniforms.speed !== undefined) {
+      material.uniforms.speed.value = uniforms.speed;
+    }
+    if ((uniforms as any).intensity !== undefined) {
+      material.uniforms.intensity.value = (uniforms as any).intensity;
+    }
+    if ((uniforms as any).direction !== undefined) {
+      const dir = (uniforms as any).direction;
+      if (Array.isArray(dir)) {
+        material.uniforms.direction.value.set(dir[0], dir[1]);
+      }
+    }
+    if (uniforms.color1) {
+      material.uniforms.color1.value.set(...uniforms.color1);
+    }
+    if (uniforms.color2) {
+      material.uniforms.color2.value.set(...uniforms.color2);
     }
   }
 
@@ -211,24 +333,24 @@ export class LayeredShaderRenderer {
       return new Uint8Array(this.stripCount * this.ledCount * 3);
     }
 
-    // Render each layer
+    // Render each layer to its own render target using THE SAME renderer
     const textures: THREE.Texture[] = [];
     const opacities: number[] = [];
     const blendModes: number[] = [];
 
     enabledLayers.forEach(layerConfig => {
-      const renderer = this.layers.get(layerConfig.id);
-      if (!renderer) {
-        console.error('[LayeredRenderer] Renderer not found for layer:', layerConfig.id);
+      const layerData = this.layers.get(layerConfig.id);
+      if (!layerData) {
+        console.error('[LayeredRenderer] Layer data not found for:', layerConfig.id);
         return;
       }
 
-      // Render the layer
-      renderer.render();
+      // Render this layer to its render target using the shared renderer
+      this.renderer.setRenderTarget(layerData.renderTarget);
+      this.renderer.render(layerData.scene, this.camera);
 
-      // Get the render target texture
-      const renderTarget = (renderer as any).renderTarget as THREE.WebGLRenderTarget;
-      textures.push(renderTarget.texture);
+      // Collect texture for compositing
+      textures.push(layerData.renderTarget.texture);
       opacities.push(layerConfig.opacity);
       blendModes.push(this.blendModeToInt(layerConfig.blendMode));
 
@@ -236,7 +358,7 @@ export class LayeredShaderRenderer {
         layerId: layerConfig.id,
         opacity: layerConfig.opacity,
         blendMode: layerConfig.blendMode,
-        textureId: renderTarget.texture.id
+        textureId: layerData.renderTarget.texture.id
       });
     });
 
@@ -256,13 +378,13 @@ export class LayeredShaderRenderer {
       layerCount: this.composeMaterial.uniforms.layerCount.value
     });
 
-    // Render composite
-    this.finalRenderer.setRenderTarget(this.finalRenderTarget);
-    this.finalRenderer.render(this.scene, this.camera);
+    // Render composite using the same shared renderer
+    this.renderer.setRenderTarget(this.finalRenderTarget);
+    this.renderer.render(this.compositeScene, this.camera);
 
-    // Read pixels
+    // Read pixels from final composite
     const pixelBuffer = new Uint8Array(this.stripCount * this.ledCount * 4);
-    this.finalRenderer.readRenderTargetPixels(
+    this.renderer.readRenderTargetPixels(
       this.finalRenderTarget,
       0,
       0,
@@ -323,9 +445,13 @@ export class LayeredShaderRenderer {
    * Dispose of resources
    */
   dispose(): void {
-    this.layers.forEach(renderer => renderer.dispose());
+    this.layers.forEach(layerData => {
+      layerData.material.dispose();
+      layerData.renderTarget.dispose();
+      layerData.mesh.geometry.dispose();
+    });
     this.layers.clear();
-    this.finalRenderer.dispose();
+    this.renderer.dispose();
     this.finalRenderTarget.dispose();
     this.plane.geometry.dispose();
     this.composeMaterial.dispose();
