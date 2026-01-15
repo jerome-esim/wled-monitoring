@@ -71,6 +71,16 @@ export const StripCanvas: React.FC = () => {
     // Draw the LED matrix if we have data
     // Check if we have matrixData AND (activeShader OR layers)
     const hasContent = activeShader || (layers && layers.length > 0);
+
+    console.log('[StripCanvas] Display check:', {
+      hasMatrixData: !!matrixData,
+      matrixDataLength: matrixData?.length || 0,
+      hasContent,
+      activeShader: !!activeShader,
+      layersCount: layers.length,
+      willDisplay: !!(matrixData && hasContent)
+    });
+
     if (matrixData && hasContent) {
       // Matrix data format: [strip0_led0_R, strip0_led0_G, strip0_led0_B, ...]
       // Organized as rows (each row is a horizontal line across all strips)
