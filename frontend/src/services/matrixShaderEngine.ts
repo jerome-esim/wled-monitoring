@@ -77,7 +77,11 @@ export class MatrixShaderRenderer {
           ),
         },
         speed: { value: uniforms.speed || 1.0 },
-        direction: { value: (uniforms as any).direction || 1.0 },
+        direction: {
+          value: new THREE.Vector2(
+            ...((uniforms as any).direction || [1.0, 0.0])
+          )
+        },
       };
 
       // Create material
@@ -112,7 +116,10 @@ export class MatrixShaderRenderer {
       this.material.uniforms.speed.value = uniforms.speed;
     }
     if ((uniforms as any).direction !== undefined) {
-      this.material.uniforms.direction.value = (uniforms as any).direction;
+      const dir = (uniforms as any).direction;
+      if (Array.isArray(dir)) {
+        this.material.uniforms.direction.value.set(dir[0], dir[1]);
+      }
     }
     if (uniforms.color1) {
       this.material.uniforms.color1.value.set(...uniforms.color1);

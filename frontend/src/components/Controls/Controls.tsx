@@ -8,7 +8,9 @@ export const Controls: React.FC = () => {
 
   const [bpm, setBpm] = useState(playbackState.bpm);
   const [speed, setSpeed] = useState(globalUniforms.speed || 1.0);
-  const [direction, setDirection] = useState((globalUniforms.direction as number) || 1.0);
+  const [direction, setDirection] = useState<[number, number]>(
+    (globalUniforms.direction as [number, number]) || [1.0, 0.0]
+  );
 
   useEffect(() => {
     setPlaybackState({ fps });
@@ -37,10 +39,11 @@ export const Controls: React.FC = () => {
     updateParams({ speed: value });
   };
 
-  const handleDirectionChange = (value: number) => {
-    setDirection(value);
-    updateUniform('direction', value);
-    updateParams({ direction: value });
+  const handleDirectionChange = (x: number, y: number) => {
+    const newDirection: [number, number] = [x, y];
+    setDirection(newDirection);
+    updateUniform('direction', newDirection);
+    updateParams({ direction: newDirection });
   };
 
   const handleColor1Change = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,35 +129,75 @@ export const Controls: React.FC = () => {
       {/* Direction Control */}
       <div>
         <label className="block text-sm font-medium text-gray-300 mb-2">
-          Direction: {direction > 0 ? '→' : '←'} {direction.toFixed(1)}
+          Direction: [{direction[0].toFixed(1)}, {direction[1].toFixed(1)}]
         </label>
-        <input
-          type="range"
-          min="-2"
-          max="2"
-          step="0.1"
-          value={direction}
-          onChange={(e) => handleDirectionChange(Number(e.target.value))}
-          className="w-full"
-        />
-        <div className="flex gap-2 mt-2">
+        {/* Directional Pad Grid */}
+        <div className="grid grid-cols-3 gap-2">
+          {/* Row 1 */}
           <button
-            onClick={() => handleDirectionChange(-1)}
-            className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+            onClick={() => handleDirectionChange(-1, 1)}
+            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            title="Diagonal: Haut-Gauche"
           >
-            ← -1
+            ↖
           </button>
           <button
-            onClick={() => handleDirectionChange(0)}
-            className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+            onClick={() => handleDirectionChange(0, 1)}
+            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            title="Haut"
           >
-            ⏸ 0
+            ↑
           </button>
           <button
-            onClick={() => handleDirectionChange(1)}
-            className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+            onClick={() => handleDirectionChange(1, 1)}
+            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            title="Diagonal: Haut-Droite"
           >
-            → 1
+            ↗
+          </button>
+          {/* Row 2 */}
+          <button
+            onClick={() => handleDirectionChange(-1, 0)}
+            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            title="Gauche"
+          >
+            ←
+          </button>
+          <button
+            onClick={() => handleDirectionChange(0, 0)}
+            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            title="Stop"
+          >
+            ⏸
+          </button>
+          <button
+            onClick={() => handleDirectionChange(1, 0)}
+            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            title="Droite"
+          >
+            →
+          </button>
+          {/* Row 3 */}
+          <button
+            onClick={() => handleDirectionChange(-1, -1)}
+            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            title="Diagonal: Bas-Gauche"
+          >
+            ↙
+          </button>
+          <button
+            onClick={() => handleDirectionChange(0, -1)}
+            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            title="Bas"
+          >
+            ↓
+          </button>
+          <button
+            onClick={() => handleDirectionChange(1, -1)}
+            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            title="Diagonal: Bas-Droite"
+          >
+            ↘
           </button>
         </div>
       </div>
