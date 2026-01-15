@@ -28,7 +28,6 @@ export const useRenderLoop = () => {
     }
 
     // Start rendering loop
-    console.log('[RenderLoop] Starting render loop');
     startTimeRef.current = Date.now();
     lastFrameTimeRef.current = Date.now();
 
@@ -55,17 +54,8 @@ export const useRenderLoop = () => {
       const useLayers = layers.length > 0;
       const useLegacy = !useLayers && activeShaderId;
 
-      console.log('[RenderLoop] Mode check:', {
-        useLayers,
-        useLegacy,
-        layersCount: layers.length,
-        enabledLayersCount: layers.filter(l => l.enabled).length,
-        activeShaderId
-      });
-
       if (!useLayers && !useLegacy) {
         // No content to render
-        console.log('[RenderLoop] No content to render, skipping frame');
         animationFrameRef.current = requestAnimationFrame(renderLoop);
         return;
       }
@@ -78,11 +68,8 @@ export const useRenderLoop = () => {
 
       if (useLayers) {
         // === LAYERS MODE ===
-        console.log('[RenderLoop] Using LAYERS mode');
-
         // Create renderer if needed
         if (!layeredRendererRef.current) {
-          console.log('[RenderLoop] Creating LayeredShaderRenderer:', { stripCount, ledCount });
           layeredRendererRef.current = new LayeredShaderRenderer(stripCount, ledCount);
         }
 
@@ -93,18 +80,11 @@ export const useRenderLoop = () => {
 
         // Update layers if configuration changed
         if (currentLayerHash !== layerHashRef.current) {
-          console.log('[RenderLoop] Layer configuration changed, updating layers');
           layerHashRef.current = currentLayerHash;
 
           // Add/update all enabled layers
           layers.forEach(layer => {
             const shader = shaders.find(s => s.id === layer.shaderId);
-            console.log('[RenderLoop] Processing layer:', {
-              layerId: layer.id,
-              shaderId: layer.shaderId,
-              enabled: layer.enabled,
-              shaderFound: !!shader
-            });
             if (shader && layer.enabled) {
               const layerUniforms = {
                 ...globalUniforms,
@@ -112,8 +92,7 @@ export const useRenderLoop = () => {
                 time: currentTime,
                 resolution: [stripCount, ledCount] as [number, number],
               };
-              const success = layeredRendererRef.current!.addLayer(layer.id, shader.fragmentShader, layerUniforms);
-              console.log('[RenderLoop] Layer added:', { layerId: layer.id, success });
+              layeredRendererRef.current!.addLayer(layer.id, shader.fragmentShader, layerUniforms);
             }
           });
         }
@@ -131,13 +110,7 @@ export const useRenderLoop = () => {
         });
 
         // Render all layers composited
-        console.log('[RenderLoop] Rendering layers...');
         matrixData = layeredRendererRef.current.render(layers);
-        console.log('[RenderLoop] Matrix data generated:', {
-          length: matrixData.length,
-          expected: stripCount * ledCount * 3,
-          nonZero: matrixData.filter(v => v > 0).length
-        });
       } else {
         // === LEGACY MODE (activeShaderId) ===
         const activeShader = shaders.find((s) => s.id === activeShaderId);
@@ -180,7 +153,6 @@ export const useRenderLoop = () => {
       }
 
       // Store for preview visualization
-      console.log('[RenderLoop] Storing matrixData in store');
       setMatrixData(matrixData);
 
       // Clear batched data
