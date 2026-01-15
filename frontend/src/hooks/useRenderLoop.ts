@@ -17,6 +17,7 @@ export const useRenderLoop = () => {
   const batchedDataRef = useRef<Map<number, Uint8Array>>(new Map());
   const layerHashRef = useRef<string>('');
   const currentShaderIdRef = useRef<string | null>(null);
+  const wasPlayingRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!playbackState.isPlaying) {
@@ -24,12 +25,16 @@ export const useRenderLoop = () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      wasPlayingRef.current = false;
       return;
     }
 
-    // Start rendering loop
-    startTimeRef.current = Date.now();
-    lastFrameTimeRef.current = Date.now();
+    // Only reset time when starting fresh (not on parameter changes)
+    if (!wasPlayingRef.current) {
+      startTimeRef.current = Date.now();
+      lastFrameTimeRef.current = Date.now();
+      wasPlayingRef.current = true;
+    }
 
     const renderLoop = () => {
       const now = Date.now();
