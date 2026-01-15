@@ -15,8 +15,8 @@ export const LayerManager: React.FC = () => {
     setSelectedLayerId,
   } = useAppStore();
 
-  // Sort layers by order (bottom to top)
-  const sortedLayers = [...layers].sort((a, b) => a.order - b.order);
+  // Sort layers by order (top to bottom in UI, highest order = top)
+  const sortedLayers = [...layers].sort((a, b) => b.order - a.order);
 
   const handleAddLayer = () => {
     if (shaders.length === 0) return;
@@ -39,6 +39,44 @@ export const LayerManager: React.FC = () => {
 
   const handleOpacityChange = (layerId: string, opacity: number) => {
     updateLayer(layerId, { opacity });
+  };
+
+  const handleColor1Change = (layerId: string, hex: string) => {
+    const rgb = hexToRgb(hex);
+    const layer = layers.find(l => l.id === layerId);
+    if (layer) {
+      updateLayer(layerId, {
+        params: { ...layer.params, color1: [...rgb, 1] }
+      });
+    }
+  };
+
+  const handleColor2Change = (layerId: string, hex: string) => {
+    const rgb = hexToRgb(hex);
+    const layer = layers.find(l => l.id === layerId);
+    if (layer) {
+      updateLayer(layerId, {
+        params: { ...layer.params, color2: [...rgb, 1] }
+      });
+    }
+  };
+
+  const hexToRgb = (hex: string): number[] => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result
+      ? [
+          parseInt(result[1], 16) / 255,
+          parseInt(result[2], 16) / 255,
+          parseInt(result[3], 16) / 255,
+        ]
+      : [1, 1, 1];
+  };
+
+  const rgbToHex = (rgb: number[]): string => {
+    const r = Math.round((rgb[0] || 0) * 255).toString(16).padStart(2, '0');
+    const g = Math.round((rgb[1] || 0) * 255).toString(16).padStart(2, '0');
+    const b = Math.round((rgb[2] || 0) * 255).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
   };
 
   return (
@@ -98,13 +136,13 @@ export const LayerManager: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-1">
-                    {/* Move buttons */}
+                    {/* Move buttons - inverted because display is top-to-bottom */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         moveLayer(layer.id, 'up');
                       }}
-                      disabled={index === sortedLayers.length - 1}
+                      disabled={index === 0}
                       className="w-6 h-6 bg-gray-600 hover:bg-gray-500 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs rounded transition-colors"
                     >
                       ↑
@@ -114,7 +152,7 @@ export const LayerManager: React.FC = () => {
                         e.stopPropagation();
                         moveLayer(layer.id, 'down');
                       }}
-                      disabled={index === 0}
+                      disabled={index === sortedLayers.length - 1}
                       className="w-6 h-6 bg-gray-600 hover:bg-gray-500 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs rounded transition-colors"
                     >
                       ↓
@@ -192,6 +230,35 @@ export const LayerManager: React.FC = () => {
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    {/* Layer Colors Override */}
+                    <div>
+                      <label className="block text-xs text-gray-300 mb-2">
+                        Colors (override global)
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Color 1</label>
+                          <input
+                            type="color"
+                            value={layer.params?.color1 ? rgbToHex(layer.params.color1 as number[]) : '#ff0000'}
+                            onChange={(e) => handleColor1Change(layer.id, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full h-8 rounded cursor-pointer"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Color 2</label>
+                          <input
+                            type="color"
+                            value={layer.params?.color2 ? rgbToHex(layer.params.color2 as number[]) : '#0000ff'}
+                            onChange={(e) => handleColor2Change(layer.id, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full h-8 rounded cursor-pointer"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
