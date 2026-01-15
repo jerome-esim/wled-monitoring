@@ -159,7 +159,10 @@ export class LayeredShaderRenderer {
       .filter(layer => layer.enabled && this.layers.has(layer.id))
       .sort((a, b) => a.order - b.order);
 
+    console.log('[LayeredRenderer] Enabled layers:', enabledLayers.length, 'Total layer renderers:', this.layers.size);
+
     if (enabledLayers.length === 0) {
+      console.log('[LayeredRenderer] No enabled layers, returning empty data');
       return new Uint8Array(this.stripCount * this.ledCount * 3);
     }
 
@@ -168,8 +171,14 @@ export class LayeredShaderRenderer {
     const opacities: number[] = [];
     const blendModes: number[] = [];
 
-    enabledLayers.forEach(layerConfig => {
-      const renderer = this.layers.get(layerConfig.id)!;
+    enabledLayers.forEach((layerConfig, index) => {
+      const renderer = this.layers.get(layerConfig.id);
+      if (!renderer) {
+        console.error('[LayeredRenderer] Renderer not found for layer:', layerConfig.id);
+        return;
+      }
+
+      console.log(`[LayeredRenderer] Rendering layer ${index}:`, layerConfig.name, 'opacity:', layerConfig.opacity, 'blend:', layerConfig.blendMode);
 
       // Render the layer
       renderer.render();

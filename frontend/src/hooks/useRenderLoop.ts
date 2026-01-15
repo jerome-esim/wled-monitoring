@@ -54,6 +54,16 @@ export const useRenderLoop = () => {
       const useLayers = layers.length > 0;
       const useLegacy = !useLayers && activeShaderId;
 
+      // Debug logs (remove after testing)
+      if (useLayers) {
+        console.log('[useRenderLoop] LAYERS MODE - layers count:', layers.length);
+        layers.forEach((layer, idx) => {
+          console.log(`  Layer ${idx}:`, layer.name, 'enabled:', layer.enabled, 'shaderId:', layer.shaderId);
+        });
+      } else if (useLegacy) {
+        console.log('[useRenderLoop] LEGACY MODE - activeShaderId:', activeShaderId);
+      }
+
       if (!useLayers && !useLegacy) {
         // No content to render
         animationFrameRef.current = requestAnimationFrame(renderLoop);
