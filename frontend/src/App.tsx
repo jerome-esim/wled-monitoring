@@ -9,32 +9,36 @@ import { Controls } from './components/Controls/Controls';
 import { LayerManager } from './components/LayerManager/LayerManager';
 import type { ShaderConfig, LayoutConfig } from '@shared/types';
 
-// Jerome's default configuration - 13 strips on 3 controllers
-// Each strip: 250 LEDs = 750 channels = uses universe N and N+1 automatically
-// Controller 1 (192.168.1.10): Strips 1-4 (universes 0-7)
-// Controller 2 (192.168.1.11): Strips 5-9 (universes 0-9)
-// Controller 3 (192.168.1.12): Strips 10-13 (universes 0-7)
+// Jerome's configuration - 13 strips on 3 controllers
+// Each strip: 250 LEDs = 750 channels (3 bytes per LED)
+//
+// Pattern per controller to maximize LED density:
+// Strip 1: U0:1-512 (170 LEDs) + U1:1-240 (80 LEDs) = 250 LEDs
+// Strip 2: U1:241-512 (90 LEDs) + U2:1-480 (160 LEDs) = 250 LEDs
+// Strip 3: U2:481-512 (10 LEDs) + U3:1-512 (170 LEDs) + U4:1-210 (70 LEDs) = 250 LEDs
+// Strip 4: U4:211-512 (100 LEDs) + U5:1-450 (150 LEDs) = 250 LEDs
+// (5th strip if needed): U6:1-512 + U7:1-238 = 250 LEDs
 const DEFAULT_LAYOUT: LayoutConfig = {
   name: 'Live Setup Jerome - 13 Strips / 3 Controllers',
   strips: [
-    // Controller 1 - 192.168.1.10 (4 strips = 8 universes)
-    { id: 1, name: 'Strip 1', universe: 0, startChannel: 1, ledCount: 250, position: { x: 50, y: 50 }, orientation: 'horizontal', ipAddress: '192.168.1.10' },
-    { id: 2, name: 'Strip 2', universe: 2, startChannel: 1, ledCount: 250, position: { x: 50, y: 100 }, orientation: 'horizontal', ipAddress: '192.168.1.10' },
-    { id: 3, name: 'Strip 3', universe: 4, startChannel: 1, ledCount: 250, position: { x: 50, y: 150 }, orientation: 'horizontal', ipAddress: '192.168.1.10' },
-    { id: 4, name: 'Strip 4', universe: 6, startChannel: 1, ledCount: 250, position: { x: 50, y: 200 }, orientation: 'horizontal', ipAddress: '192.168.1.10' },
+    // Controller 1 - 192.168.8.10 (4 strips = 6 universes)
+    { id: 1, name: 'Strip 1', universe: 0, startChannel: 1, ledCount: 250, position: { x: 50, y: 50 }, orientation: 'horizontal', ipAddress: '192.168.8.10' },
+    { id: 2, name: 'Strip 2', universe: 1, startChannel: 241, ledCount: 250, position: { x: 50, y: 100 }, orientation: 'horizontal', ipAddress: '192.168.8.10' },
+    { id: 3, name: 'Strip 3', universe: 2, startChannel: 481, ledCount: 250, position: { x: 50, y: 150 }, orientation: 'horizontal', ipAddress: '192.168.8.10' },
+    { id: 4, name: 'Strip 4', universe: 4, startChannel: 211, ledCount: 250, position: { x: 50, y: 200 }, orientation: 'horizontal', ipAddress: '192.168.8.10' },
 
-    // Controller 2 - 192.168.1.11 (5 strips = 10 universes)
-    { id: 5, name: 'Strip 5', universe: 0, startChannel: 1, ledCount: 250, position: { x: 50, y: 250 }, orientation: 'horizontal', ipAddress: '192.168.1.11' },
-    { id: 6, name: 'Strip 6', universe: 2, startChannel: 1, ledCount: 250, position: { x: 50, y: 300 }, orientation: 'horizontal', ipAddress: '192.168.1.11' },
-    { id: 7, name: 'Strip 7', universe: 4, startChannel: 1, ledCount: 250, position: { x: 50, y: 350 }, orientation: 'horizontal', ipAddress: '192.168.1.11' },
-    { id: 8, name: 'Strip 8', universe: 6, startChannel: 1, ledCount: 250, position: { x: 50, y: 400 }, orientation: 'horizontal', ipAddress: '192.168.1.11' },
-    { id: 9, name: 'Strip 9', universe: 8, startChannel: 1, ledCount: 250, position: { x: 50, y: 450 }, orientation: 'horizontal', ipAddress: '192.168.1.11' },
+    // Controller 2 - 192.168.8.11 (5 strips = 8 universes)
+    { id: 5, name: 'Strip 5', universe: 0, startChannel: 1, ledCount: 250, position: { x: 50, y: 250 }, orientation: 'horizontal', ipAddress: '192.168.8.11' },
+    { id: 6, name: 'Strip 6', universe: 1, startChannel: 241, ledCount: 250, position: { x: 50, y: 300 }, orientation: 'horizontal', ipAddress: '192.168.8.11' },
+    { id: 7, name: 'Strip 7', universe: 2, startChannel: 481, ledCount: 250, position: { x: 50, y: 350 }, orientation: 'horizontal', ipAddress: '192.168.8.11' },
+    { id: 8, name: 'Strip 8', universe: 4, startChannel: 211, ledCount: 250, position: { x: 50, y: 400 }, orientation: 'horizontal', ipAddress: '192.168.8.11' },
+    { id: 9, name: 'Strip 9', universe: 6, startChannel: 1, ledCount: 250, position: { x: 50, y: 450 }, orientation: 'horizontal', ipAddress: '192.168.8.11' },
 
-    // Controller 3 - 192.168.1.12 (4 strips = 8 universes)
-    { id: 10, name: 'Strip 10', universe: 0, startChannel: 1, ledCount: 250, position: { x: 50, y: 500 }, orientation: 'horizontal', ipAddress: '192.168.1.12' },
-    { id: 11, name: 'Strip 11', universe: 2, startChannel: 1, ledCount: 250, position: { x: 50, y: 550 }, orientation: 'horizontal', ipAddress: '192.168.1.12' },
-    { id: 12, name: 'Strip 12', universe: 4, startChannel: 1, ledCount: 250, position: { x: 50, y: 600 }, orientation: 'horizontal', ipAddress: '192.168.1.12' },
-    { id: 13, name: 'Strip 13', universe: 6, startChannel: 1, ledCount: 250, position: { x: 50, y: 650 }, orientation: 'horizontal', ipAddress: '192.168.1.12' },
+    // Controller 3 - 192.168.8.12 (4 strips = 6 universes)
+    { id: 10, name: 'Strip 10', universe: 0, startChannel: 1, ledCount: 250, position: { x: 50, y: 500 }, orientation: 'horizontal', ipAddress: '192.168.8.12' },
+    { id: 11, name: 'Strip 11', universe: 1, startChannel: 241, ledCount: 250, position: { x: 50, y: 550 }, orientation: 'horizontal', ipAddress: '192.168.8.12' },
+    { id: 12, name: 'Strip 12', universe: 2, startChannel: 481, ledCount: 250, position: { x: 50, y: 600 }, orientation: 'horizontal', ipAddress: '192.168.8.12' },
+    { id: 13, name: 'Strip 13', universe: 4, startChannel: 211, ledCount: 250, position: { x: 50, y: 650 }, orientation: 'horizontal', ipAddress: '192.168.8.12' },
   ],
 };
 
