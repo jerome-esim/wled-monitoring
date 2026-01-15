@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import { useSocket } from './hooks/useSocket';
 import { useRenderLoop } from './hooks/useRenderLoop';
 import { useAppStore } from './store/appStore';
-import { ShaderLibrary } from './components/ShaderLibrary/ShaderLibrary';
-import { ShaderEditor } from './components/ShaderEditor/ShaderEditor';
+// import { ShaderLibrary } from './components/ShaderLibrary/ShaderLibrary';
+// import { ShaderEditor } from './components/ShaderEditor/ShaderEditor';
 import { StripCanvas } from './components/Canvas/StripCanvas';
 import { Controls } from './components/Controls/Controls';
 import { LayerManager } from './components/LayerManager/LayerManager';
@@ -73,30 +73,23 @@ function App() {
         </div>
       </header>
 
-      {/* Main Layout */}
+      {/* Main Layout - 3 Columns */}
       <div className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
-        {/* Left Sidebar - Shader Library */}
-        <div className="col-span-2 overflow-hidden">
-          <ShaderLibrary />
+        {/* Left Column - Layers Panel */}
+        <div className="col-span-3 overflow-y-auto">
+          <LayerManager />
         </div>
 
-        {/* Center - Canvas and Editor */}
-        <div className="col-span-7 flex flex-col gap-4 overflow-hidden">
-          {/* Canvas Layout */}
-          <div className="h-1/2">
+        {/* Center Column - Live Preview */}
+        <div className="col-span-6 flex flex-col gap-4 overflow-hidden">
+          <div className="h-full">
             <StripCanvas />
           </div>
-
-          {/* Shader Editor */}
-          <div className="h-1/2">
-            <ShaderEditor />
-          </div>
         </div>
 
-        {/* Right Sidebar - Controls and Layers */}
-        <div className="col-span-3 overflow-y-auto space-y-4">
+        {/* Right Column - Controls */}
+        <div className="col-span-3 overflow-y-auto">
           <Controls />
-          <LayerManager />
         </div>
       </div>
     </div>
