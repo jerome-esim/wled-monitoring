@@ -75,31 +75,70 @@ export class LayeredShaderRenderer {
           return mix(base, result, alpha);
         }
 
+        vec3 applyBlend(vec3 base, vec3 blend, float alpha, int mode) {
+          if (mode == 0) { // normal
+            return blendNormal(base, blend, alpha);
+          } else if (mode == 1) { // add
+            return blendAdd(base, blend, alpha);
+          } else if (mode == 2) { // multiply
+            return blendMultiply(base, blend, alpha);
+          } else if (mode == 3) { // screen
+            return blendScreen(base, blend, alpha);
+          }
+          return base;
+        }
+
         void main() {
           vec3 finalColor = vec3(0.0);
 
-          for (int i = 0; i < 8; i++) {
-            if (i >= layerCount) break;
+          // Manually unroll loop for WebGL 1.0 compatibility
+          // (array indexing with non-constant expressions not allowed for samplers)
 
-            vec4 layerColor = texture2D(layers[i], vUv);
+          if (layerCount > 0) {
+            vec4 layerColor = texture2D(layers[0], vUv);
+            finalColor = layerColor.rgb * opacities[0];
+          }
 
-            if (i == 0) {
-              // First layer: use RGB directly with opacity, ignore shader alpha
-              finalColor = layerColor.rgb * opacities[i];
-            } else {
-              // Other layers: use shader alpha for transparency
-              float opacity = opacities[i] * layerColor.a;
-              int mode = blendModes[i];
-              if (mode == 0) { // normal
-                finalColor = blendNormal(finalColor, layerColor.rgb, opacity);
-              } else if (mode == 1) { // add
-                finalColor = blendAdd(finalColor, layerColor.rgb, opacity);
-              } else if (mode == 2) { // multiply
-                finalColor = blendMultiply(finalColor, layerColor.rgb, opacity);
-              } else if (mode == 3) { // screen
-                finalColor = blendScreen(finalColor, layerColor.rgb, opacity);
-              }
-            }
+          if (layerCount > 1) {
+            vec4 layerColor = texture2D(layers[1], vUv);
+            float opacity = opacities[1] * layerColor.a;
+            finalColor = applyBlend(finalColor, layerColor.rgb, opacity, blendModes[1]);
+          }
+
+          if (layerCount > 2) {
+            vec4 layerColor = texture2D(layers[2], vUv);
+            float opacity = opacities[2] * layerColor.a;
+            finalColor = applyBlend(finalColor, layerColor.rgb, opacity, blendModes[2]);
+          }
+
+          if (layerCount > 3) {
+            vec4 layerColor = texture2D(layers[3], vUv);
+            float opacity = opacities[3] * layerColor.a;
+            finalColor = applyBlend(finalColor, layerColor.rgb, opacity, blendModes[3]);
+          }
+
+          if (layerCount > 4) {
+            vec4 layerColor = texture2D(layers[4], vUv);
+            float opacity = opacities[4] * layerColor.a;
+            finalColor = applyBlend(finalColor, layerColor.rgb, opacity, blendModes[4]);
+          }
+
+          if (layerCount > 5) {
+            vec4 layerColor = texture2D(layers[5], vUv);
+            float opacity = opacities[5] * layerColor.a;
+            finalColor = applyBlend(finalColor, layerColor.rgb, opacity, blendModes[5]);
+          }
+
+          if (layerCount > 6) {
+            vec4 layerColor = texture2D(layers[6], vUv);
+            float opacity = opacities[6] * layerColor.a;
+            finalColor = applyBlend(finalColor, layerColor.rgb, opacity, blendModes[6]);
+          }
+
+          if (layerCount > 7) {
+            vec4 layerColor = texture2D(layers[7], vUv);
+            float opacity = opacities[7] * layerColor.a;
+            finalColor = applyBlend(finalColor, layerColor.rgb, opacity, blendModes[7]);
           }
 
           gl_FragColor = vec4(finalColor, 1.0);
