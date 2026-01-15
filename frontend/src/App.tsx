@@ -73,30 +73,24 @@ function App() {
         </div>
       </header>
 
-      {/* Main Layout */}
+      {/* Main Layout - 3 Columns */}
       <div className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
-        {/* Left Sidebar - Shader Library */}
-        <div className="col-span-2 overflow-hidden">
+        {/* Left Column - Layers Panel (Shaders + Layer Manager) */}
+        <div className="col-span-3 overflow-y-auto space-y-4">
           <ShaderLibrary />
+          <LayerManager />
         </div>
 
-        {/* Center - Canvas */}
-        <div className="col-span-7 flex flex-col gap-4 overflow-hidden">
-          {/* Canvas Layout */}
+        {/* Center Column - Live Preview */}
+        <div className="col-span-6 flex flex-col gap-4 overflow-hidden">
           <div className="h-full">
             <StripCanvas />
           </div>
-
-          {/* Shader Editor - Hidden for now */}
-          {/* <div className="h-1/2">
-            <ShaderEditor />
-          </div> */}
         </div>
 
-        {/* Right Sidebar - Controls and Layers */}
-        <div className="col-span-3 overflow-y-auto space-y-4">
+        {/* Right Column - Controls */}
+        <div className="col-span-3 overflow-y-auto">
           <Controls />
-          <LayerManager />
         </div>
       </div>
     </div>
