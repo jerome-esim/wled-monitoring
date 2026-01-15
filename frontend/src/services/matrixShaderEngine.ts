@@ -85,17 +85,6 @@ export class MatrixShaderRenderer {
         },
       };
 
-      console.log('[MatrixShaderRenderer] Compiling shader with uniforms:', {
-        time: shaderUniforms.time.value,
-        bpm: shaderUniforms.bpm.value,
-        resolution: [this.stripCount, this.ledCount],
-        color1: uniforms.color1,
-        color2: uniforms.color2,
-        speed: shaderUniforms.speed.value,
-        intensity: shaderUniforms.intensity.value,
-        direction: (uniforms as any).direction
-      });
-
       // Create material
       this.material = new THREE.ShaderMaterial({
         vertexShader,
@@ -104,8 +93,6 @@ export class MatrixShaderRenderer {
       });
 
       this.mesh.material = this.material;
-
-      console.log('[MatrixShaderRenderer] Shader compiled successfully');
 
       return true;
     } catch (error) {
@@ -154,7 +141,6 @@ export class MatrixShaderRenderer {
   render(): Uint8Array {
     if (!this.material) {
       // Return black pixels if no shader
-      console.log('[MatrixShaderRenderer] No material, returning empty data');
       return new Uint8Array(this.stripCount * this.ledCount * 3);
     }
 
@@ -172,14 +158,6 @@ export class MatrixShaderRenderer {
       this.ledCount,
       pixelBuffer
     );
-
-    console.log('[MatrixShaderRenderer] Rendered layer:', {
-      stripCount: this.stripCount,
-      ledCount: this.ledCount,
-      bufferLength: pixelBuffer.length,
-      firstPixels: Array.from(pixelBuffer.slice(0, 40)),
-      nonZero: pixelBuffer.filter(v => v > 0).length
-    });
 
     // Convert RGBA to RGB
     const rgbData = new Uint8Array(this.stripCount * this.ledCount * 3);

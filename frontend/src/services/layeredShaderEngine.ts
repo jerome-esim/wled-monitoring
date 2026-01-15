@@ -222,8 +222,6 @@ export class LayeredShaderRenderer {
 
       layerData = { material, renderTarget, mesh, scene };
       this.layers.set(layerId, layerData);
-
-      console.log('[LayeredRenderer] Created new layer:', layerId);
     } else {
       // Update existing layer material if needed
       // For now, we'll recreate the material
@@ -259,8 +257,6 @@ export class LayeredShaderRenderer {
         uniforms: shaderUniforms,
       });
       layerData.mesh.material = layerData.material;
-
-      console.log('[LayeredRenderer] Updated layer:', layerId);
     }
 
     return true;
@@ -322,14 +318,7 @@ export class LayeredShaderRenderer {
       .filter(layer => layer.enabled && this.layers.has(layer.id))
       .sort((a, b) => a.order - b.order);
 
-    console.log('[LayeredRenderer] Rendering:', {
-      totalLayers: layerConfigs.length,
-      enabledLayers: enabledLayers.length,
-      layerIds: enabledLayers.map(l => l.id)
-    });
-
     if (enabledLayers.length === 0) {
-      console.log('[LayeredRenderer] No enabled layers, returning empty data');
       return new Uint8Array(this.stripCount * this.ledCount * 3);
     }
 
@@ -353,19 +342,6 @@ export class LayeredShaderRenderer {
       textures.push(layerData.renderTarget.texture);
       opacities.push(layerConfig.opacity);
       blendModes.push(this.blendModeToInt(layerConfig.blendMode));
-
-      console.log('[LayeredRenderer] Layer rendered:', {
-        layerId: layerConfig.id,
-        opacity: layerConfig.opacity,
-        blendMode: layerConfig.blendMode,
-        textureId: layerData.renderTarget.texture.id
-      });
-    });
-
-    console.log('[LayeredRenderer] Compositing:', {
-      textureCount: textures.length,
-      opacities,
-      blendModes
     });
 
     // Update compositing shader uniforms
@@ -373,10 +349,6 @@ export class LayeredShaderRenderer {
     this.composeMaterial.uniforms.opacities.value = opacities;
     this.composeMaterial.uniforms.blendModes.value = blendModes;
     this.composeMaterial.uniforms.layerCount.value = textures.length;
-
-    console.log('[LayeredRenderer] Shader uniforms set:', {
-      layerCount: this.composeMaterial.uniforms.layerCount.value
-    });
 
     // Render composite using the same shared renderer
     this.renderer.setRenderTarget(this.finalRenderTarget);
@@ -393,11 +365,6 @@ export class LayeredShaderRenderer {
       pixelBuffer
     );
 
-    console.log('[LayeredRenderer] Pixels read from render target:', {
-      bufferLength: pixelBuffer.length,
-      firstPixels: Array.from(pixelBuffer.slice(0, 40))
-    });
-
     // Convert RGBA to RGB
     const rgbData = new Uint8Array(this.stripCount * this.ledCount * 3);
     for (let i = 0; i < this.stripCount * this.ledCount; i++) {
@@ -405,12 +372,6 @@ export class LayeredShaderRenderer {
       rgbData[i * 3 + 1] = pixelBuffer[i * 4 + 1];
       rgbData[i * 3 + 2] = pixelBuffer[i * 4 + 2];
     }
-
-    console.log('[LayeredRenderer] RGB data extracted:', {
-      rgbLength: rgbData.length,
-      firstPixels: Array.from(rgbData.slice(0, 30)),
-      nonZero: rgbData.filter(v => v > 0).length
-    });
 
     return rgbData;
   }

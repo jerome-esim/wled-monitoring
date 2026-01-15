@@ -111,15 +111,6 @@ export const useRenderLoop = () => {
 
         // Render all layers composited
         matrixData = layeredRendererRef.current.render(layers);
-
-        // Debug: Check if we have actual color data
-        const nonZeroCount = matrixData.filter(v => v > 0).length;
-        console.log('[RenderLoop] Matrix data:', {
-          length: matrixData.length,
-          expected: stripCount * ledCount * 3,
-          nonZeroValues: nonZeroCount,
-          firstPixels: Array.from(matrixData.slice(0, 30))
-        });
       } else {
         // === LEGACY MODE (activeShaderId) ===
         const activeShader = shaders.find((s) => s.id === activeShaderId);
