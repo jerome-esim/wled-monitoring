@@ -7,7 +7,7 @@ interface RendererMap {
 }
 
 export const useRenderLoop = () => {
-  const { strips, shaders, assignments, playbackState, globalUniforms, setGlobalUniforms, setPreviewData } =
+  const { strips, shaders, assignments, playbackState, globalUniforms, setPreviewData } =
     useAppStore();
   const renderersRef = useRef<RendererMap>({});
   const animationFrameRef = useRef<number>();
@@ -27,9 +27,6 @@ export const useRenderLoop = () => {
 
     const renderLoop = () => {
       const currentTime = (Date.now() - startTimeRef.current) / 1000; // Convert to seconds
-
-      // Update global time uniform
-      setGlobalUniforms({ time: currentTime });
 
       // Render each strip that has a shader assigned
       assignments.forEach((assignment) => {
@@ -97,7 +94,7 @@ export const useRenderLoop = () => {
     shaders,
     assignments,
     globalUniforms,
-    setGlobalUniforms,
+    setPreviewData,
   ]);
 
   // Cleanup renderers when component unmounts
