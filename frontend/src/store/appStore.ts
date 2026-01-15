@@ -101,6 +101,7 @@ export const useAppStore = create<AppState>((set) => ({
     time: 0,
     bpm: 120,
     speed: 1.0,
+    direction: 1.0,
     color1: [1, 0, 0, 1],
     color2: [0, 0, 1, 1],
   },

@@ -77,6 +77,7 @@ export class MatrixShaderRenderer {
           ),
         },
         speed: { value: uniforms.speed || 1.0 },
+        direction: { value: (uniforms as any).direction || 1.0 },
       };
 
       // Create material
@@ -109,6 +110,9 @@ export class MatrixShaderRenderer {
     }
     if (uniforms.speed !== undefined) {
       this.material.uniforms.speed.value = uniforms.speed;
+    }
+    if ((uniforms as any).direction !== undefined) {
+      this.material.uniforms.direction.value = (uniforms as any).direction;
     }
     if (uniforms.color1) {
       this.material.uniforms.color1.value.set(...uniforms.color1);
