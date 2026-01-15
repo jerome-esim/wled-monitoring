@@ -6,6 +6,14 @@ export const StripCanvas: React.FC = () => {
   const { strips, activeShaderId, shaders, matrixData, layers } = useAppStore();
 
   useEffect(() => {
+    console.log('[StripCanvas] Render triggered:', {
+      stripsCount: strips.length,
+      activeShaderId,
+      matrixDataLength: matrixData?.length || 0,
+      layersCount: layers.length,
+      hasContent: activeShaderId || (layers && layers.length > 0)
+    });
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
