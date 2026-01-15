@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useSocket } from './hooks/useSocket';
 import { useRenderLoop } from './hooks/useRenderLoop';
 import { useAppStore } from './store/appStore';
-import { ShaderLibrary } from './components/ShaderLibrary/ShaderLibrary';
+// import { ShaderLibrary } from './components/ShaderLibrary/ShaderLibrary';
 // import { ShaderEditor } from './components/ShaderEditor/ShaderEditor';
 import { StripCanvas } from './components/Canvas/StripCanvas';
 import { Controls } from './components/Controls/Controls';
@@ -75,9 +75,8 @@ function App() {
 
       {/* Main Layout - 3 Columns */}
       <div className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
-        {/* Left Column - Layers Panel (Shaders + Layer Manager) */}
-        <div className="col-span-3 overflow-y-auto space-y-4">
-          <ShaderLibrary />
+        {/* Left Column - Layers Panel */}
+        <div className="col-span-3 overflow-y-auto">
           <LayerManager />
         </div>
 
