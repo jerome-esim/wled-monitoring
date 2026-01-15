@@ -77,6 +77,7 @@ export class MatrixShaderRenderer {
           ),
         },
         speed: { value: uniforms.speed || 1.0 },
+        intensity: { value: (uniforms as any).intensity || 1.0 },
         direction: {
           value: new THREE.Vector2(
             ...((uniforms as any).direction || [1.0, 0.0])
@@ -114,6 +115,9 @@ export class MatrixShaderRenderer {
     }
     if (uniforms.speed !== undefined) {
       this.material.uniforms.speed.value = uniforms.speed;
+    }
+    if ((uniforms as any).intensity !== undefined) {
+      this.material.uniforms.intensity.value = (uniforms as any).intensity;
     }
     if ((uniforms as any).direction !== undefined) {
       const dir = (uniforms as any).direction;

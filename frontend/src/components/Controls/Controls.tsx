@@ -8,6 +8,7 @@ export const Controls: React.FC = () => {
 
   const [bpm, setBpm] = useState(playbackState.bpm);
   const [speed, setSpeed] = useState(globalUniforms.speed || 1.0);
+  const [intensity, setIntensity] = useState((globalUniforms as any).intensity || 1.0);
   const [direction, setDirection] = useState<[number, number]>(
     (globalUniforms.direction as [number, number]) || [1.0, 0.0]
   );
@@ -37,6 +38,12 @@ export const Controls: React.FC = () => {
     setSpeed(value);
     updateUniform('speed', value);
     updateParams({ speed: value });
+  };
+
+  const handleIntensityChange = (value: number) => {
+    setIntensity(value);
+    updateUniform('intensity', value);
+    updateParams({ intensity: value });
   };
 
   const handleDirectionChange = (x: number, y: number) => {
@@ -122,6 +129,22 @@ export const Controls: React.FC = () => {
           step="0.1"
           value={speed}
           onChange={(e) => handleSpeedChange(Number(e.target.value))}
+          className="w-full"
+        />
+      </div>
+
+      {/* Intensity Control */}
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Intensity: {intensity.toFixed(2)}
+        </label>
+        <input
+          type="range"
+          min="0"
+          max="2"
+          step="0.1"
+          value={intensity}
+          onChange={(e) => handleIntensityChange(Number(e.target.value))}
           className="w-full"
         />
       </div>

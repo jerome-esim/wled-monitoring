@@ -100,6 +100,73 @@ void main() {
         createdAt: Date.now(),
         updatedAt: Date.now(),
       },
+      {
+        id: 'lightning-flash',
+        name: 'Lightning Flash',
+        category: 'Effects',
+        fragmentShader: `
+precision highp float;
+
+uniform float time;
+uniform float bpm;
+uniform float intensity;
+uniform vec4 color1;
+uniform vec2 resolution;
+
+// Simple hash function for pseudo-random
+float hash(float n) {
+  return fract(sin(n) * 43758.5453123);
+}
+
+// Noise function
+float noise(float x) {
+  float i = floor(x);
+  float f = fract(x);
+  return mix(hash(i), hash(i + 1.0), smoothstep(0.0, 1.0, f));
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / resolution;
+
+  // BPM-synced trigger
+  float beat = fract(time * bpm / 60.0);
+  float trigger = step(beat, 0.1); // Flash at the start of each beat
+
+  // Random lightning position
+  float lightningTime = floor(time * bpm / 60.0);
+  float randomX = hash(lightningTime * 3.14159);
+
+  // Distance from lightning center
+  float dist = abs(uv.x - randomX);
+
+  // Lightning bolt with noise
+  float noiseOffset = noise(uv.y * 20.0 + time * 10.0) * 0.05;
+  dist += noiseOffset;
+
+  // Lightning width and intensity
+  float lightning = smoothstep(0.15, 0.0, dist) * trigger * intensity;
+
+  // Add some vertical variation
+  float verticalNoise = noise(uv.y * 15.0 + lightningTime);
+  lightning *= verticalNoise * 0.5 + 0.5;
+
+  // Flash effect (full screen white flash)
+  float flash = trigger * intensity * 0.3 * exp(-beat * 10.0);
+
+  vec3 finalColor = color1.rgb * (lightning + flash);
+  float alpha = lightning + flash;
+
+  gl_FragColor = vec4(finalColor, alpha);
+}
+`,
+        uniforms: {
+          bpm: 120.0,
+          intensity: 1.0,
+          color1: [1.0, 1.0, 1.0, 1.0], // White lightning
+        },
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
     ];
 
     baseShaders.forEach((shader) => {
