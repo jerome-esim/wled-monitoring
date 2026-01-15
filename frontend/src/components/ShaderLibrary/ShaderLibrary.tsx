@@ -4,7 +4,7 @@ import { useSocket } from '../../hooks/useSocket';
 import type { ShaderConfig } from '@shared/types';
 
 export const ShaderLibrary: React.FC = () => {
-  const { shaders, layers, addLayer, selectedShaderId, setSelectedShaderId } = useAppStore();
+  const { shaders, layers, addLayer, setActiveShaderId, selectedShaderId, setSelectedShaderId } = useAppStore();
   const { createShader, deleteShader } = useSocket();
 
   const handleShaderClick = (shaderId: string) => {
@@ -13,6 +13,8 @@ export const ShaderLibrary: React.FC = () => {
     if (shader) {
       addLayer(shaderId, `${shader.name} Layer`);
     }
+    // Also set as active shader (legacy mode fallback)
+    setActiveShaderId(shaderId);
     // Select for editing
     setSelectedShaderId(shaderId);
   };

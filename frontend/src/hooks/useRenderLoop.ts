@@ -1,19 +1,22 @@
 import { useEffect, useRef } from 'react';
 import { useAppStore } from '../store/appStore';
 import { LayeredShaderRenderer } from '../services/layeredShaderEngine';
+import { MatrixShaderRenderer } from '../services/matrixShaderEngine';
 
 const TARGET_FPS = 40; // 40 FPS for Art-Net
 const FRAME_INTERVAL = 1000 / TARGET_FPS; // 25ms
 
 export const useRenderLoop = () => {
-  const { strips, shaders, layers, playbackState, globalUniforms, setMatrixData } =
+  const { strips, shaders, layers, activeShaderId, playbackState, globalUniforms, setMatrixData } =
     useAppStore();
-  const rendererRef = useRef<LayeredShaderRenderer | null>(null);
+  const layeredRendererRef = useRef<LayeredShaderRenderer | null>(null);
+  const legacyRendererRef = useRef<MatrixShaderRenderer | null>(null);
   const animationFrameRef = useRef<number>();
   const startTimeRef = useRef<number>(Date.now());
   const lastFrameTimeRef = useRef<number>(Date.now());
   const batchedDataRef = useRef<Map<number, Uint8Array>>(new Map());
   const layerHashRef = useRef<string>('');
+  const currentShaderIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!playbackState.isPlaying) {
@@ -41,8 +44,18 @@ export const useRenderLoop = () => {
       lastFrameTimeRef.current = now - (deltaTime % FRAME_INTERVAL);
       const currentTime = (now - startTimeRef.current) / 1000; // Convert to seconds
 
-      // Check if we have strips and layers
-      if (strips.length === 0 || layers.length === 0) {
+      // Check if we have strips
+      if (strips.length === 0) {
+        animationFrameRef.current = requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      // Determine which mode to use: layers or legacy
+      const useLayers = layers.length > 0;
+      const useLegacy = !useLayers && activeShaderId;
+
+      if (!useLayers && !useLegacy) {
+        // No content to render
         animationFrameRef.current = requestAnimationFrame(renderLoop);
         return;
       }
@@ -51,49 +64,93 @@ export const useRenderLoop = () => {
       const stripCount = strips.length;
       const ledCount = strips[0]?.ledCount || 250; // Assuming all strips have same LED count
 
-      // Create renderer if needed
-      if (!rendererRef.current) {
-        rendererRef.current = new LayeredShaderRenderer(stripCount, ledCount);
-      }
+      let matrixData: Uint8Array;
 
-      // Compute hash of layer configuration
-      const currentLayerHash = JSON.stringify(
-        layers.map(l => ({ id: l.id, shaderId: l.shaderId, enabled: l.enabled }))
-      );
+      if (useLayers) {
+        // === LAYERS MODE ===
+        // Create renderer if needed
+        if (!layeredRendererRef.current) {
+          layeredRendererRef.current = new LayeredShaderRenderer(stripCount, ledCount);
+        }
 
-      // Update layers if configuration changed
-      if (currentLayerHash !== layerHashRef.current) {
-        layerHashRef.current = currentLayerHash;
+        // Compute hash of layer configuration
+        const currentLayerHash = JSON.stringify(
+          layers.map(l => ({ id: l.id, shaderId: l.shaderId, enabled: l.enabled }))
+        );
 
-        // Add/update all enabled layers
+        // Update layers if configuration changed
+        if (currentLayerHash !== layerHashRef.current) {
+          layerHashRef.current = currentLayerHash;
+
+          // Add/update all enabled layers
+          layers.forEach(layer => {
+            const shader = shaders.find(s => s.id === layer.shaderId);
+            if (shader && layer.enabled) {
+              const layerUniforms = {
+                ...globalUniforms,
+                ...layer.params,
+                time: currentTime,
+                resolution: [stripCount, ledCount] as [number, number],
+              };
+              layeredRendererRef.current!.addLayer(layer.id, shader.fragmentShader, layerUniforms);
+            }
+          });
+        }
+
+        // Update uniforms for all layers
         layers.forEach(layer => {
-          const shader = shaders.find(s => s.id === layer.shaderId);
-          if (shader && layer.enabled) {
+          if (layer.enabled) {
             const layerUniforms = {
               ...globalUniforms,
               ...layer.params,
               time: currentTime,
-              resolution: [stripCount, ledCount] as [number, number],
             };
-            rendererRef.current!.addLayer(layer.id, shader.fragmentShader, layerUniforms);
+            layeredRendererRef.current!.updateLayerUniforms(layer.id, layerUniforms);
           }
         });
-      }
 
-      // Update uniforms for all layers
-      layers.forEach(layer => {
-        if (layer.enabled) {
-          const layerUniforms = {
+        // Render all layers composited
+        matrixData = layeredRendererRef.current.render(layers);
+      } else {
+        // === LEGACY MODE (activeShaderId) ===
+        const activeShader = shaders.find((s) => s.id === activeShaderId);
+        if (!activeShader) {
+          animationFrameRef.current = requestAnimationFrame(renderLoop);
+          return;
+        }
+
+        // Create or recreate renderer if needed
+        if (!legacyRendererRef.current || currentShaderIdRef.current !== activeShaderId) {
+          if (legacyRendererRef.current) {
+            legacyRendererRef.current.dispose();
+          }
+          legacyRendererRef.current = new MatrixShaderRenderer(stripCount, ledCount);
+          currentShaderIdRef.current = activeShaderId;
+
+          // Compile shader
+          const uniforms = {
             ...globalUniforms,
-            ...layer.params,
+            time: currentTime,
+            resolution: [stripCount, ledCount] as [number, number],
+          };
+          const success = legacyRendererRef.current.updateShader(activeShader.fragmentShader, uniforms);
+          if (!success) {
+            console.error('Failed to compile shader:', activeShaderId);
+            animationFrameRef.current = requestAnimationFrame(renderLoop);
+            return;
+          }
+        } else {
+          // Just update uniforms
+          const uniforms = {
+            ...globalUniforms,
             time: currentTime,
           };
-          rendererRef.current!.updateLayerUniforms(layer.id, layerUniforms);
+          legacyRendererRef.current.updateUniforms(uniforms);
         }
-      });
 
-      // Render all layers composited
-      const matrixData = rendererRef.current.render(layers);
+        // Render the global matrix
+        matrixData = legacyRendererRef.current.render();
+      }
 
       // Store for preview visualization
       setMatrixData(matrixData);
@@ -102,8 +159,9 @@ export const useRenderLoop = () => {
       batchedDataRef.current.clear();
 
       // Extract data for each strip
+      const renderer = useLayers ? layeredRendererRef.current! : legacyRendererRef.current!;
       strips.forEach((strip, index) => {
-        const stripData = rendererRef.current!.extractStripData(index, matrixData);
+        const stripData = renderer.extractStripData(index, matrixData);
         batchedDataRef.current.set(strip.id, stripData);
       });
 
@@ -130,16 +188,21 @@ export const useRenderLoop = () => {
     strips,
     shaders,
     layers,
+    activeShaderId,
     globalUniforms,
     setMatrixData,
   ]);
 
-  // Cleanup renderer when component unmounts
+  // Cleanup renderers when component unmounts
   useEffect(() => {
     return () => {
-      if (rendererRef.current) {
-        rendererRef.current.dispose();
-        rendererRef.current = null;
+      if (layeredRendererRef.current) {
+        layeredRendererRef.current.dispose();
+        layeredRendererRef.current = null;
+      }
+      if (legacyRendererRef.current) {
+        legacyRendererRef.current.dispose();
+        legacyRendererRef.current = null;
       }
     };
   }, []);
