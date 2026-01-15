@@ -8,9 +8,9 @@ import { StripCanvas } from './components/Canvas/StripCanvas';
 import { Controls } from './components/Controls/Controls';
 import type { ShaderConfig, LayoutConfig } from '@shared/types';
 
-// Jerome's default configuration
+// Jerome's default configuration - 12 strips
 const DEFAULT_LAYOUT: LayoutConfig = {
-  name: 'Live Setup Jerome',
+  name: 'Live Setup Jerome - 12 Strips',
   strips: [
     { id: 1, name: 'Strip 1', universe: 0, startChannel: 1, ledCount: 250, position: { x: 50, y: 50 }, orientation: 'horizontal', ipAddress: '192.168.1.10' },
     { id: 2, name: 'Strip 2', universe: 2, startChannel: 1, ledCount: 250, position: { x: 50, y: 100 }, orientation: 'horizontal', ipAddress: '192.168.1.11' },
@@ -18,6 +18,12 @@ const DEFAULT_LAYOUT: LayoutConfig = {
     { id: 4, name: 'Strip 4', universe: 6, startChannel: 1, ledCount: 250, position: { x: 50, y: 200 }, orientation: 'horizontal', ipAddress: '192.168.1.13' },
     { id: 5, name: 'Strip 5', universe: 8, startChannel: 1, ledCount: 250, position: { x: 50, y: 250 }, orientation: 'horizontal', ipAddress: '192.168.1.14' },
     { id: 6, name: 'Strip 6', universe: 10, startChannel: 1, ledCount: 250, position: { x: 50, y: 300 }, orientation: 'horizontal', ipAddress: '192.168.1.15' },
+    { id: 7, name: 'Strip 7', universe: 12, startChannel: 1, ledCount: 250, position: { x: 50, y: 350 }, orientation: 'horizontal', ipAddress: '192.168.1.16' },
+    { id: 8, name: 'Strip 8', universe: 14, startChannel: 1, ledCount: 250, position: { x: 50, y: 400 }, orientation: 'horizontal', ipAddress: '192.168.1.17' },
+    { id: 9, name: 'Strip 9', universe: 16, startChannel: 1, ledCount: 250, position: { x: 50, y: 450 }, orientation: 'horizontal', ipAddress: '192.168.1.18' },
+    { id: 10, name: 'Strip 10', universe: 18, startChannel: 1, ledCount: 250, position: { x: 50, y: 500 }, orientation: 'horizontal', ipAddress: '192.168.1.19' },
+    { id: 11, name: 'Strip 11', universe: 20, startChannel: 1, ledCount: 250, position: { x: 50, y: 550 }, orientation: 'horizontal', ipAddress: '192.168.1.20' },
+    { id: 12, name: 'Strip 12', universe: 22, startChannel: 1, ledCount: 250, position: { x: 50, y: 600 }, orientation: 'horizontal', ipAddress: '192.168.1.21' },
   ],
 };
 
