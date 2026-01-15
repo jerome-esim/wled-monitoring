@@ -1,14 +1,11 @@
 import React, { useRef, useEffect } from 'react';
 import { useAppStore } from '../../store/appStore';
-import type { StripConfig } from '@shared/types';
+import { useSocket } from '../../hooks/useSocket';
 
-interface StripCanvasProps {
-  onStripClick?: (strip: StripConfig) => void;
-}
-
-export const StripCanvas: React.FC<StripCanvasProps> = ({ onStripClick }) => {
+export const StripCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { strips } = useAppStore();
+  const { strips, selectedShaderId, shaders, assignments, setAssignment, previewData } = useAppStore();
+  const { applyShader } = useSocket();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -45,12 +42,47 @@ export const StripCanvas: React.FC<StripCanvasProps> = ({ onStripClick }) => {
       const width = strip.orientation === 'horizontal' ? strip.ledCount * 2 : 20;
       const height = strip.orientation === 'vertical' ? strip.ledCount * 2 : 20;
 
-      // Draw strip background
-      ctx.fillStyle = '#4b5563';
-      ctx.fillRect(x, y, width, height);
+      // Check if strip has a shader assigned
+      const assignment = assignments.find((a) => a.stripId === strip.id);
+      const assignedShader = assignment
+        ? shaders.find((s) => s.id === assignment.shaderId)
+        : null;
+
+      // Get preview data if available
+      const rgbData = previewData.get(strip.id);
+
+      // Draw strip background or live preview
+      if (rgbData && assignedShader) {
+        // Draw live preview from shader
+        if (strip.orientation === 'horizontal') {
+          // Draw horizontal strip with actual LED colors
+          const ledWidth = width / strip.ledCount;
+          for (let i = 0; i < strip.ledCount; i++) {
+            const r = rgbData[i * 3];
+            const g = rgbData[i * 3 + 1];
+            const b = rgbData[i * 3 + 2];
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            ctx.fillRect(x + i * ledWidth, y, ledWidth, height);
+          }
+        } else {
+          // Draw vertical strip with actual LED colors
+          const ledHeight = height / strip.ledCount;
+          for (let i = 0; i < strip.ledCount; i++) {
+            const r = rgbData[i * 3];
+            const g = rgbData[i * 3 + 1];
+            const b = rgbData[i * 3 + 2];
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            ctx.fillRect(x, y + i * ledHeight, width, ledHeight);
+          }
+        }
+      } else {
+        // Draw static background
+        ctx.fillStyle = assignedShader ? '#059669' : '#4b5563';
+        ctx.fillRect(x, y, width, height);
+      }
 
       // Draw strip border
-      ctx.strokeStyle = '#60a5fa';
+      ctx.strokeStyle = assignedShader ? '#10b981' : '#60a5fa';
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, width, height);
 
@@ -59,15 +91,28 @@ export const StripCanvas: React.FC<StripCanvasProps> = ({ onStripClick }) => {
       ctx.font = '12px sans-serif';
       ctx.fillText(strip.name, x + 5, y - 5);
 
+      // Draw shader name if assigned
+      if (assignedShader) {
+        ctx.fillStyle = '#d1fae5';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(assignedShader.name, x + 5, y + 15);
+      }
+
       // Draw LED count
       ctx.fillStyle = '#9ca3af';
       ctx.font = '10px sans-serif';
       ctx.fillText(`${strip.ledCount} LEDs`, x + 5, y + height + 15);
     });
-  }, [strips]);
+  }, [strips, assignments, shaders, previewData]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current || !onStripClick) return;
+    if (!canvasRef.current) return;
+
+    // Need a selected shader to assign
+    if (!selectedShaderId) {
+      alert('Please select a shader first');
+      return;
+    }
 
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -81,7 +126,17 @@ export const StripCanvas: React.FC<StripCanvasProps> = ({ onStripClick }) => {
       const height = strip.orientation === 'vertical' ? strip.ledCount * 2 : 20;
 
       if (x >= stripX && x <= stripX + width && y >= stripY && y <= stripY + height) {
-        onStripClick(strip);
+        // Assign shader to strip
+        const assignment = {
+          stripId: strip.id,
+          shaderId: selectedShaderId,
+          params: {}, // Will use global params
+        };
+
+        setAssignment(assignment);
+        applyShader(assignment);
+
+        console.log(`Assigned shader ${selectedShaderId} to strip ${strip.name}`);
         break;
       }
     }
@@ -90,9 +145,9 @@ export const StripCanvas: React.FC<StripCanvasProps> = ({ onStripClick }) => {
   return (
     <div className="h-full bg-gray-800 rounded-lg overflow-hidden">
       <div className="p-4 border-b border-gray-700">
-        <h2 className="text-lg font-semibold text-white">LED Layout</h2>
+        <h2 className="text-lg font-semibold text-white">LED Layout - Live Preview</h2>
         <p className="text-sm text-gray-400 mt-1">
-          {strips.length} strip{strips.length !== 1 ? 's' : ''} configured
+          {strips.length} strip{strips.length !== 1 ? 's' : ''} configured • Click to assign selected shader
         </p>
       </div>
       <div className="p-4">

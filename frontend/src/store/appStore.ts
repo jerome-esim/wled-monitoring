@@ -41,6 +41,11 @@ interface AppState {
     key: K,
     value: ShaderUniforms[K]
   ) => void;
+
+  // Preview data for visual feedback
+  previewData: Map<number, Uint8Array>;
+  setPreviewData: (stripId: number, data: Uint8Array) => void;
+  clearPreviewData: () => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -130,4 +135,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       globalUniforms: { ...state.globalUniforms, [key]: value },
     })),
+
+  // Preview data
+  previewData: new Map(),
+  setPreviewData: (stripId, data) =>
+    set((state) => {
+      const newMap = new Map(state.previewData);
+      newMap.set(stripId, data);
+      return { previewData: newMap };
+    }),
+  clearPreviewData: () => set({ previewData: new Map() }),
 }));

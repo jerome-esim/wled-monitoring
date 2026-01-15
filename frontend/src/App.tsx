@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useSocket } from './hooks/useSocket';
+import { useRenderLoop } from './hooks/useRenderLoop';
 import { useAppStore } from './store/appStore';
 import { ShaderLibrary } from './components/ShaderLibrary/ShaderLibrary';
 import { ShaderEditor } from './components/ShaderEditor/ShaderEditor';
@@ -23,6 +24,9 @@ const DEFAULT_LAYOUT: LayoutConfig = {
 function App() {
   const { connected, on, updateConfig } = useSocket();
   const { setShaders, setStrips, strips } = useAppStore();
+
+  // Start render loop for Art-Net output
+  useRenderLoop();
 
   // Initialize on mount
   useEffect(() => {
