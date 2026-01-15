@@ -75,34 +75,33 @@ export class ArtNetService {
       );
     }
 
-    // Calculate how many universes we need
     const totalChannels = strip.ledCount * CHANNELS_PER_LED;
-    const universesNeeded = Math.ceil(totalChannels / MAX_CHANNELS_PER_UNIVERSE);
+    const startChannel = (strip.startChannel || 1) - 1; // Convert to 0-based index
 
-    for (let i = 0; i < universesNeeded; i++) {
-      const universeOffset = i * MAX_CHANNELS_PER_UNIVERSE;
-      const channelsInThisUniverse = Math.min(
-        MAX_CHANNELS_PER_UNIVERSE,
-        totalChannels - universeOffset
-      );
+    let currentUniverse = strip.universe;
+    let channelInUniverse = startChannel;
+    let dataOffset = 0;
 
-      // Extract the data for this universe
-      const universeData = rgbData.slice(
-        universeOffset,
-        universeOffset + channelsInThisUniverse
-      );
+    while (dataOffset < totalChannels) {
+      // How many channels can we write in this universe?
+      const channelsAvailable = MAX_CHANNELS_PER_UNIVERSE - channelInUniverse;
+      const channelsToWrite = Math.min(channelsAvailable, totalChannels - dataOffset);
 
-      // Pad to even number of channels if needed
-      const paddedData = Buffer.alloc(
-        universeData.length % 2 === 0 ? universeData.length : universeData.length + 1
-      );
-      paddedData.set(universeData);
+      // Create buffer for this universe (full 512 channels)
+      const universeBuffer = Buffer.alloc(MAX_CHANNELS_PER_UNIVERSE);
 
-      // Generate packet
-      const packet = this.generatePacket(strip.universe + i, paddedData);
+      // Copy the data at the correct offset
+      const dataSlice = rgbData.slice(dataOffset, dataOffset + channelsToWrite);
+      universeBuffer.set(dataSlice, channelInUniverse);
 
-      // Send to the strip's IP address
+      // Generate and send packet
+      const packet = this.generatePacket(currentUniverse, universeBuffer);
       await this.send(strip.ipAddress, packet);
+
+      // Move to next universe
+      dataOffset += channelsToWrite;
+      currentUniverse++;
+      channelInUniverse = 0; // Start at beginning of next universe
     }
   }
 
