@@ -7,7 +7,7 @@ const TARGET_FPS = 40; // 40 FPS for Art-Net
 const FRAME_INTERVAL = 1000 / TARGET_FPS; // 25ms
 
 export const useRenderLoop = () => {
-  const { strips, shaders, layers, activeShaderId, playbackState, globalUniforms, setMatrixData } =
+  const { strips, shaders, layers, activeShaderId, playbackState, globalUniforms, setMatrixData, masterBrightness } =
     useAppStore();
   const layeredRendererRef = useRef<LayeredShaderRenderer | null>(null);
   const legacyRendererRef = useRef<MatrixShaderRenderer | null>(null);
@@ -152,6 +152,13 @@ export const useRenderLoop = () => {
         matrixData = legacyRendererRef.current.render();
       }
 
+      // Apply master brightness / dimmer
+      if (masterBrightness < 1.0) {
+        for (let i = 0; i < matrixData.length; i++) {
+          matrixData[i] = Math.round(matrixData[i] * masterBrightness);
+        }
+      }
+
       // Store for preview visualization
       setMatrixData(matrixData);
 
@@ -191,6 +198,7 @@ export const useRenderLoop = () => {
     activeShaderId,
     globalUniforms,
     setMatrixData,
+    masterBrightness,
   ]);
 
   // Cleanup renderers when component unmounts

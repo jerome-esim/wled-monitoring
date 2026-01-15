@@ -3,7 +3,7 @@ import { useAppStore } from '../../store/appStore';
 import { useSocket } from '../../hooks/useSocket';
 
 export const Controls: React.FC = () => {
-  const { playbackState, globalUniforms, setPlaybackState, updateUniform } = useAppStore();
+  const { playbackState, globalUniforms, setPlaybackState, updateUniform, masterBrightness, setMasterBrightness } = useAppStore();
   const { startPlayback, stopPlayback, updateBpm, updateParams, fps } = useSocket();
 
   const [bpm, setBpm] = useState(playbackState.bpm);
@@ -89,6 +89,33 @@ export const Controls: React.FC = () => {
       <div className="bg-gray-900 rounded p-3 text-center">
         <div className="text-2xl font-bold text-blue-400">{fps} FPS</div>
         <div className="text-xs text-gray-400 mt-1">Rendering Performance</div>
+      </div>
+
+      {/* Master Brightness / Dimmer */}
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          💡 Master Brightness: {Math.round(masterBrightness * 100)}%
+        </label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={masterBrightness}
+          onChange={(e) => setMasterBrightness(Number(e.target.value))}
+          className="w-full"
+        />
+        <div className="flex gap-2 mt-2">
+          {[0.25, 0.5, 0.75, 1.0].map((value) => (
+            <button
+              key={value}
+              onClick={() => setMasterBrightness(value)}
+              className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+            >
+              {Math.round(value * 100)}%
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* BPM Control */}

@@ -54,6 +54,10 @@ interface AppState {
   matrixData: Uint8Array | null;
   setMatrixData: (data: Uint8Array) => void;
   clearMatrixData: () => void;
+
+  // Master brightness / dimmer (0.0 to 1.0)
+  masterBrightness: number;
+  setMasterBrightness: (brightness: number) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -180,4 +184,8 @@ export const useAppStore = create<AppState>((set) => ({
   matrixData: null,
   setMatrixData: (data) => set({ matrixData: data }),
   clearMatrixData: () => set({ matrixData: null }),
+
+  // Master brightness / dimmer
+  masterBrightness: 1.0,
+  setMasterBrightness: (brightness) => set({ masterBrightness: brightness }),
 }));
