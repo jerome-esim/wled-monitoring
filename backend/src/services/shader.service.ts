@@ -76,6 +76,7 @@ precision highp float;
 
 uniform float time;
 uniform float speed;
+uniform float direction;
 uniform vec4 color1;
 uniform vec4 color2;
 uniform vec2 resolution;
@@ -83,7 +84,7 @@ uniform vec2 resolution;
 void main() {
   vec2 uv = gl_FragCoord.xy / resolution;
 
-  float pos = mod(uv.x + time * speed, 1.0);
+  float pos = mod(uv.x + time * speed * direction, 1.0);
   vec3 color = mix(color1.rgb, color2.rgb, pos);
 
   gl_FragColor = vec4(color, 1.0);
@@ -91,6 +92,7 @@ void main() {
 `,
         uniforms: {
           speed: 0.5,
+          direction: 1.0,
           color1: [1.0, 0.0, 0.0, 1.0],
           color2: [0.0, 0.0, 1.0, 1.0],
         },
