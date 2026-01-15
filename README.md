@@ -1,112 +1,308 @@
-# WLED Monitoring
+# LED Shader Controller
 
-Une application React pour monitorer plusieurs instances WLED sur votre réseau local.
+Une application web pour contrôler 12 strips LED (3000 LEDs totales) via Art-Net avec application de shaders GLSL personnalisés, destinée à des performances DJ live.
 
-## Fonctionnalités
+## 🎨 Fonctionnalités
 
-- ✨ Interface React moderne avec Vite et mode sombre
-- 🔍 Scan d'une plage d'adresses IP personnalisable
-- 📊 Affichage en tableau des devices WLED détectés
-- 🎨 Visualisation de l'état, luminosité, couleur et effet de chaque device
-- ⚡ Scan rapide en parallèle avec timeout de 3 secondes par device
-- 📈 Statistiques en temps réel (total scanné, en ligne, allumés)
-- 🔄 Refresh automatique avec mise à jour séquentielle (1 device/seconde)
-- 📡 Informations WiFi détaillées (signal RSSI avec niveau de qualité, canal)
-- 🔗 Liens cliquables sur les adresses IP pour accéder directement à l'interface WLED
-- 🎛️ Panneau de contrôle global pour piloter tous les devices simultanément (luminosité, couleur, on/off)
-- 🚀 Presets rapides (Mode nuit, Blanc chaud, Tout allumer/éteindre)
+- **Contrôle de 12 strips LED** (250 LEDs chacune) via protocole Art-Net
+- **Éditeur de shaders GLSL** avec preview temps réel
+- **Bibliothèque de shaders** avec catégorisation
+- **Canvas interactif** pour positionner visuellement les strips
+- **Contrôle BPM** pour synchronisation DJ
+- **Interface temps réel** via WebSocket
+- **3 shaders de base** inclus : Rainbow Wave, Strobe BPM, Gradient Sweep
 
-## Configuration par défaut
+## 🏗️ Architecture
 
-- Plage IP par défaut : **192.168.8.10** à **192.168.8.21**
-- Timeout par device : **3 secondes**
-- Scan par lots de **10 devices** simultanément
-- Refresh automatique : Cycle toutes les **10 secondes** avec mise à jour progressive (**1 device/seconde**)
-
-## Installation
-
-```bash
-npm install
+```
+led-controller/
+├── frontend/          # React + TypeScript + Three.js
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Canvas/        # Layout des strips
+│   │   │   ├── ShaderEditor/  # Editeur GLSL
+│   │   │   ├── ShaderLibrary/ # Liste shaders
+│   │   │   └── Controls/      # UI contrôles
+│   │   ├── hooks/
+│   │   │   └── useSocket.ts   # WebSocket client
+│   │   ├── services/
+│   │   │   └── shaderEngine.ts # Rendu Three.js
+│   │   └── store/
+│   │       └── appStore.ts    # Zustand state
+│   └── package.json
+│
+├── backend/           # Node.js + Express
+│   ├── src/
+│   │   ├── services/
+│   │   │   ├── artnet.service.ts  # Génération Art-Net
+│   │   │   └── shader.service.ts  # Gestion shaders
+│   │   ├── sockets/
+│   │   │   └── artnet.socket.ts   # WebSocket server
+│   │   └── index.ts
+│   └── package.json
+│
+└── shared/            # Types partagés
+    └── types.ts
 ```
 
-## Utilisation
+## 🚀 Installation
 
-### Mode développement
+### Prérequis
+
+- Node.js 18+
+- npm ou yarn
+- ESP32 avec firmware WLED
+- Réseau local 192.168.x.x
+
+### Backend
 
 ```bash
+cd backend
+npm install
+cp .env.example .env
 npm run dev
 ```
 
-L'application sera accessible sur `http://localhost:5173`
+Le serveur démarre sur `http://localhost:3001`
 
-### Build production
+### Frontend
 
 ```bash
-npm run build
+cd frontend
+npm install
+npm run dev
 ```
 
-Les fichiers compilés seront dans le dossier `dist/`
+L'interface web s'ouvre sur `http://localhost:5173`
 
-### Preview de la build
+## 📝 Configuration
+
+### Configuration des Strips
+
+Par défaut, le projet charge "Live Setup Jerome" avec 6 strips :
+
+```typescript
+{
+  name: "Live Setup Jerome",
+  strips: [
+    {
+      id: 1,
+      name: "Strip 1",
+      universe: 0,
+      startChannel: 1,
+      ledCount: 250,
+      position: { x: 50, y: 50 },
+      orientation: "horizontal",
+      ipAddress: "192.168.1.10"
+    },
+    // ... 5 autres strips
+  ]
+}
+```
+
+### Variables d'environnement
+
+**Backend** (`.env`):
+```
+PORT=3001
+ARTNET_PORT=6454
+CORS_ORIGIN=http://localhost:5173
+```
+
+**Frontend** (`.env` - optionnel):
+```
+VITE_SOCKET_URL=http://localhost:3001
+```
+
+## 🎮 Utilisation
+
+### 1. Créer un shader
+
+1. Cliquez sur "+ New" dans la bibliothèque de shaders
+2. Éditez le code GLSL dans l'éditeur Monaco
+3. Utilisez les uniforms disponibles :
+   - `time` : Temps écoulé
+   - `bpm` : BPM actuel
+   - `resolution` : Taille du strip (vec2)
+   - `color1`, `color2` : Couleurs paramétrables (vec4)
+   - `speed` : Vitesse d'animation
+
+### 2. Appliquer un shader
+
+1. Sélectionnez un shader dans la bibliothèque
+2. Cliquez sur un strip dans le canvas
+3. Le shader s'applique automatiquement
+
+### 3. Contrôler la lecture
+
+- **Play/Stop** : Lance/arrête l'envoi Art-Net
+- **BPM** : Ajustez pour synchroniser avec la musique
+- **Speed** : Contrôle la vitesse des animations
+- **Colors** : Modifie les couleurs primaires/secondaires
+
+## 📡 Protocole Art-Net
+
+### Spécifications
+
+- **Version** : Art-Net 4
+- **Port UDP** : 6454
+- **Fréquence** : 40 FPS minimum
+- **Canaux par LED** : 3 (RGB)
+- **LEDs par univers** : 170 max (512 canaux / 3)
+
+### Structure des paquets
+
+```
+Header: "Art-Net" + 0x00
+OpCode: 0x5000 (ArtDmx)
+Protocol Version: 14
+Sequence: increment
+Physical: 0
+Universe: 0-15
+Length: nombre de canaux
+Data: [R1, G1, B1, R2, G2, B2, ...]
+```
+
+Pour 250 LEDs, 2 univers Art-Net sont nécessaires.
+
+## 🎨 Exemples de Shaders
+
+### Rainbow Wave
+
+```glsl
+precision highp float;
+uniform float time;
+uniform float speed;
+uniform vec2 resolution;
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / resolution;
+  float wave = sin(uv.x * 10.0 + time * speed) * 0.5 + 0.5;
+  vec3 rainbow = vec3(
+    sin(time + uv.x * 3.14159),
+    sin(time + uv.x * 3.14159 + 2.0),
+    sin(time + uv.x * 3.14159 + 4.0)
+  ) * 0.5 + 0.5;
+  gl_FragColor = vec4(rainbow * wave, 1.0);
+}
+```
+
+### Strobe BPM
+
+```glsl
+precision highp float;
+uniform float time;
+uniform float bpm;
+uniform vec4 color1;
+
+void main() {
+  float beat = mod(time * bpm / 60.0, 1.0);
+  float strobe = step(0.5, beat);
+  gl_FragColor = vec4(color1.rgb * strobe, 1.0);
+}
+```
+
+## 🔧 API WebSocket
+
+### Events Client → Server
+
+```typescript
+{ event: 'config:update', data: StripConfig[] }
+{ event: 'shader:apply', data: StripShaderAssignment }
+{ event: 'params:update', data: Partial<ShaderUniforms> }
+{ event: 'playback:start' }
+{ event: 'playback:stop' }
+{ event: 'bpm:update', data: { bpm: number } }
+```
+
+### Events Server → Client
+
+```typescript
+{ event: 'fps:update', data: { fps: number } }
+{ event: 'artnet:error', data: { message: string } }
+{ event: 'shaders:list', data: ShaderConfig[] }
+```
+
+## 🧪 Build & Production
+
+### Frontend
 
 ```bash
+cd frontend
+npm run build
 npm run preview
 ```
 
-## Utilisation de l'application
+### Backend
 
-1. **Configurer la plage d'IP** : Entrez les adresses IP de début et de fin
-2. **Cliquer sur Scanner** : Lance le scan de la plage d'IP
-3. **Consulter les résultats** : Le tableau affiche tous les devices détectés avec refresh automatique progressif (1 device mis à jour par seconde)
-4. **Accéder à WLED** : Cliquez sur une adresse IP pour ouvrir l'interface WLED du device dans un nouvel onglet
-5. **Contrôle global** : Utilisez le panneau de contrôle pour piloter tous les devices en ligne simultanément
+```bash
+cd backend
+npm run build
+npm start
+```
 
-## Panneau de Contrôle Global
+## 📚 Technologies
 
-Le panneau de contrôle global apparaît dès qu'au moins un device est en ligne. Il permet de :
+### Frontend
+- **React** 18.2 - UI framework
+- **TypeScript** 5.3 - Type safety
+- **Three.js** 0.160 - WebGL rendering
+- **React Three Fiber** - React renderer for Three.js
+- **Zustand** - State management
+- **Monaco Editor** - Code editor
+- **Socket.io Client** - WebSocket
+- **Tailwind CSS** - Styling
+- **Vite** 5.0 - Build tool
 
-### Actions Rapides
-- **⚡ Tout Allumer** : Allume tous les devices en ligne
-- **⚫ Tout Éteindre** : Éteint tous les devices en ligne
-- **🌙 Mode Nuit** : Règle tous les devices à 20% de luminosité
-- **💡 Blanc Chaud** : Applique une couleur blanc chaud (255, 147, 41) à tous les devices
+### Backend
+- **Node.js** 18+
+- **Express** 4.18 - Web server
+- **Socket.io** 4.6 - WebSocket server
+- **artnet** - Art-Net protocol
+- **TypeScript** 5.3
 
-### Contrôles Personnalisés
-- **Luminosité** : Ajustez le slider (0-100%) et cliquez sur "Appliquer à tous" pour définir la luminosité de tous les devices
-- **Couleur** : Choisissez une couleur avec le color picker et cliquez sur "Appliquer à tous" pour l'appliquer à tous les devices
+## 🎯 Roadmap
 
-**Note** : Les commandes sont envoyées séquentiellement à chaque device. Un refresh automatique est déclenché 500ms après l'application pour voir les changements.
+### Phase 1 - Core ✅
+- Configuration strips (JSON)
+- Canvas layout simple
+- Éditeur shader basique
+- Rendu Three.js → pixels
+- Génération Art-Net
+- Envoi UDP vers ESP32
 
-## Informations affichées
+### Phase 2 - UI (Prochaine)
+- Drag & drop shaders sur strips
+- Preview temps réel sur canvas
+- Multi-strips simultanés
+- Gestion presets
 
-Pour chaque device WLED détecté :
-- **Adresse IP** (cliquable pour ouvrir l'interface WLED)
-- **Status** : En ligne / Hors ligne
-- **Nom** : Nom configuré du device
-- **Version** : Version du firmware WLED
-- **État** : Allumé / Éteint
-- **Luminosité** : Pourcentage de luminosité (0-100%)
-- **Couleur** : Aperçu visuel de la couleur actuelle
-- **Effet** : Nom de l'effet en cours
-- **Live** : Indique si le mode Live (streaming temps réel) est actif
-- **Signal WiFi** : RSSI en dBm avec niveau de qualité (Excellent / Bon / Moyen / Faible / Très faible)
-- **Canal** : Canal WiFi utilisé
+### Phase 3 - Advanced
+- BPM auto-detect (Web Audio API)
+- Transitions entre presets
+- MIDI mapping
+- Performance monitoring
 
-## API WLED utilisée
+## 🐛 Dépannage
 
-L'application utilise l'API JSON de WLED :
-- **GET** `/json/info` : Informations du device (nom, version, mode live, infos WiFi : RSSI, canal)
-- **GET** `/json/state` : État actuel (on/off, luminosité, couleurs, effets)
-- **POST** `/json/state` : Envoi de commandes pour contrôler les devices (luminosité, couleur, on/off)
+### Le backend ne démarre pas
+- Vérifiez que le port 3001 est disponible
+- Installez les dépendances : `npm install`
 
-## Limitations
+### Les LEDs ne s'allument pas
+- Vérifiez les adresses IP des ESP32
+- Assurez-vous que le firewall autorise UDP port 6454
+- Testez la connectivité réseau avec `ping`
 
-- Maximum 255 adresses IP par scan
-- Timeout de 3 secondes par device
-- L'application doit être sur le même réseau que les devices WLED
+### Erreur de compilation de shader
+- Vérifiez la syntaxe GLSL
+- Assurez-vous d'utiliser `precision highp float;`
+- Les uniforms doivent être déclarés
 
-## Technologies utilisées
+## 📄 Licence
 
-- React 18
-- Vite 5
-- CSS moderne avec flexbox/grid
+MIT
+
+## 👨‍💻 Auteur
+
+**Jerome** - DJ & LED Artist
