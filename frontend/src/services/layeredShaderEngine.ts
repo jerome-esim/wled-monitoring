@@ -82,11 +82,13 @@ export class LayeredShaderRenderer {
             if (i >= layerCount) break;
 
             vec4 layerColor = texture2D(layers[i], vUv);
-            float opacity = opacities[i] * layerColor.a;
 
             if (i == 0) {
-              finalColor = layerColor.rgb * opacity;
+              // First layer: use RGB directly with opacity, ignore shader alpha
+              finalColor = layerColor.rgb * opacities[i];
             } else {
+              // Other layers: use shader alpha for transparency
+              float opacity = opacities[i] * layerColor.a;
               int mode = blendModes[i];
               if (mode == 0) { // normal
                 finalColor = blendNormal(finalColor, layerColor.rgb, opacity);
@@ -159,10 +161,7 @@ export class LayeredShaderRenderer {
       .filter(layer => layer.enabled && this.layers.has(layer.id))
       .sort((a, b) => a.order - b.order);
 
-    console.log('[LayeredRenderer] Enabled layers:', enabledLayers.length, 'Total layer renderers:', this.layers.size);
-
     if (enabledLayers.length === 0) {
-      console.log('[LayeredRenderer] No enabled layers, returning empty data');
       return new Uint8Array(this.stripCount * this.ledCount * 3);
     }
 
@@ -171,14 +170,12 @@ export class LayeredShaderRenderer {
     const opacities: number[] = [];
     const blendModes: number[] = [];
 
-    enabledLayers.forEach((layerConfig, index) => {
+    enabledLayers.forEach(layerConfig => {
       const renderer = this.layers.get(layerConfig.id);
       if (!renderer) {
         console.error('[LayeredRenderer] Renderer not found for layer:', layerConfig.id);
         return;
       }
-
-      console.log(`[LayeredRenderer] Rendering layer ${index}:`, layerConfig.name, 'opacity:', layerConfig.opacity, 'blend:', layerConfig.blendMode);
 
       // Render the layer
       renderer.render();
