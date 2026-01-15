@@ -8,6 +8,7 @@ export const Controls: React.FC = () => {
 
   const [bpm, setBpm] = useState(playbackState.bpm);
   const [speed, setSpeed] = useState(globalUniforms.speed || 1.0);
+  const [direction, setDirection] = useState((globalUniforms.direction as number) || 1.0);
 
   useEffect(() => {
     setPlaybackState({ fps });
@@ -34,6 +35,12 @@ export const Controls: React.FC = () => {
     setSpeed(value);
     updateUniform('speed', value);
     updateParams({ speed: value });
+  };
+
+  const handleDirectionChange = (value: number) => {
+    setDirection(value);
+    updateUniform('direction', value);
+    updateParams({ direction: value });
   };
 
   const handleColor1Change = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,6 +121,42 @@ export const Controls: React.FC = () => {
           onChange={(e) => handleSpeedChange(Number(e.target.value))}
           className="w-full"
         />
+      </div>
+
+      {/* Direction Control */}
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Direction: {direction > 0 ? '→' : '←'} {direction.toFixed(1)}
+        </label>
+        <input
+          type="range"
+          min="-2"
+          max="2"
+          step="0.1"
+          value={direction}
+          onChange={(e) => handleDirectionChange(Number(e.target.value))}
+          className="w-full"
+        />
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={() => handleDirectionChange(-1)}
+            className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+          >
+            ← -1
+          </button>
+          <button
+            onClick={() => handleDirectionChange(0)}
+            className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+          >
+            ⏸ 0
+          </button>
+          <button
+            onClick={() => handleDirectionChange(1)}
+            className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+          >
+            → 1
+          </button>
+        </div>
       </div>
 
       {/* Color Controls */}
