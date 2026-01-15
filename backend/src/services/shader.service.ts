@@ -167,6 +167,107 @@ void main() {
         createdAt: Date.now(),
         updatedAt: Date.now(),
       },
+      {
+        id: 'zigzag-chaser',
+        name: 'Zigzag Chaser',
+        category: 'Effects',
+        fragmentShader: `
+precision highp float;
+
+uniform float time;
+uniform float speed;
+uniform float intensity;
+uniform vec4 color1;
+uniform vec2 resolution;
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / resolution;
+  vec3 color = vec3(0.0);
+
+  float width = resolution.x;
+  float height = resolution.y;
+  float currentCol = floor(uv.x * width);
+
+  // Number of chasers based on intensity (1-3)
+  int numChasers = int(clamp(intensity * 3.0, 1.0, 3.0));
+  float totalCells = width * height;
+
+  // Chaser parameters
+  float chaserSize = 0.05; // 5% of height
+  float trailLength = 0.1; // 10% of height
+  float chaserSizeCells = chaserSize * height;
+  float trailLengthCells = trailLength * height;
+  float totalLength = chaserSizeCells + trailLengthCells;
+
+  for (int c = 0; c < 3; c++) {
+    if (c >= numChasers) break;
+
+    // Offset each chaser
+    float offset = (float(c) / float(numChasers)) * totalCells;
+    float animatedPos = time * speed * 50.0;
+    float globalPos = mod(animatedPos + offset, totalCells);
+
+    // Check pixels for this chaser (head + trail)
+    for (float i = 0.0; i < 200.0; i += 1.0) {
+      if (i > totalLength * 1.5) break;
+
+      // Global position of this pixel in the chaser
+      float pixelGlobalPos = mod(globalPos - (i / height) * height, totalCells);
+
+      // Which column for this pixel
+      float pixelColumn = floor(pixelGlobalPos / height);
+      float posInColumn = mod(pixelGlobalPos, height);
+
+      // Only if we're on the correct column
+      if (abs(pixelColumn - currentCol) < 0.5) {
+        // Direction for this column (zigzag)
+        bool columnGoesDown = mod(pixelColumn, 2.0) < 0.5;
+
+        // Y position of this pixel
+        float pixelY;
+        if (columnGoesDown) {
+          pixelY = (height - posInColumn - 1.0) / height;
+        } else {
+          pixelY = posInColumn / height;
+        }
+
+        // Distance to this pixel
+        float distY = abs(uv.y - pixelY);
+        float distCells = distY * height;
+
+        // Calculate intensity
+        if (distCells < 1.0) {
+          float pixelIntensity = 0.0;
+
+          if (i < chaserSizeCells) {
+            // Head - full brightness
+            pixelIntensity = 1.0;
+          } else {
+            // Trail - fading
+            float trailPos = i - chaserSizeCells;
+            pixelIntensity = 1.0 - (trailPos / trailLengthCells);
+            pixelIntensity *= 0.5;
+          }
+
+          color += color1.rgb * pixelIntensity;
+        }
+      }
+    }
+  }
+
+  color = clamp(color, 0.0, 1.0);
+
+  gl_FragColor = vec4(color, 1.0);
+}
+`,
+        uniforms: {
+          speed: 1.0,
+          intensity: 1.0,
+          color1: [1.0, 0.5, 0.0, 1.0], // Orange
+        },
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
     ];
 
     baseShaders.forEach((shader) => {
