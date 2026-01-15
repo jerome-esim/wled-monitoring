@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import type {
   StripConfig,
   ShaderConfig,
-  StripShaderAssignment,
   ShaderUniforms,
   PlaybackState,
 } from '@shared/types';
@@ -21,14 +20,12 @@ interface AppState {
   addShader: (shader: ShaderConfig) => void;
   updateShaderInStore: (id: string, updates: Partial<ShaderConfig>) => void;
   removeShader: (id: string) => void;
+
+  // Active global shader (one shader for all strips)
+  activeShaderId: string | null;
+  setActiveShaderId: (id: string | null) => void;
   selectedShaderId: string | null;
   setSelectedShaderId: (id: string | null) => void;
-
-  // Strip-Shader Assignments
-  assignments: StripShaderAssignment[];
-  setAssignment: (assignment: StripShaderAssignment) => void;
-  getAssignment: (stripId: number) => StripShaderAssignment | undefined;
-  removeAssignment: (stripId: number) => void;
 
   // Playback
   playbackState: PlaybackState;
@@ -42,13 +39,13 @@ interface AppState {
     value: ShaderUniforms[K]
   ) => void;
 
-  // Preview data for visual feedback
-  previewData: Map<number, Uint8Array>;
-  setPreviewData: (stripId: number, data: Uint8Array) => void;
-  clearPreviewData: () => void;
+  // Global matrix preview data (stripCount × ledCount)
+  matrixData: Uint8Array | null;
+  setMatrixData: (data: Uint8Array) => void;
+  clearMatrixData: () => void;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>((set) => ({
   // Strips
   strips: [],
   setStrips: (strips) => set({ strips }),
@@ -80,32 +77,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => ({
       shaders: state.shaders.filter((s) => s.id !== id),
     })),
+
+  // Active shader (global for all strips)
+  activeShaderId: null,
+  setActiveShaderId: (id) => set({ activeShaderId: id }),
   selectedShaderId: null,
   setSelectedShaderId: (id) => set({ selectedShaderId: id }),
-
-  // Assignments
-  assignments: [],
-  setAssignment: (assignment) =>
-    set((state) => {
-      const existing = state.assignments.find((a) => a.stripId === assignment.stripId);
-      if (existing) {
-        return {
-          assignments: state.assignments.map((a) =>
-            a.stripId === assignment.stripId ? assignment : a
-          ),
-        };
-      }
-      return {
-        assignments: [...state.assignments, assignment],
-      };
-    }),
-  getAssignment: (stripId) => {
-    return get().assignments.find((a) => a.stripId === stripId);
-  },
-  removeAssignment: (stripId) =>
-    set((state) => ({
-      assignments: state.assignments.filter((a) => a.stripId !== stripId),
-    })),
 
   // Playback
   playbackState: {
@@ -136,13 +113,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       globalUniforms: { ...state.globalUniforms, [key]: value },
     })),
 
-  // Preview data
-  previewData: new Map(),
-  setPreviewData: (stripId, data) =>
-    set((state) => {
-      const newMap = new Map(state.previewData);
-      newMap.set(stripId, data);
-      return { previewData: newMap };
-    }),
-  clearPreviewData: () => set({ previewData: new Map() }),
+  // Global matrix data
+  matrixData: null,
+  setMatrixData: (data) => set({ matrixData: data }),
+  clearMatrixData: () => set({ matrixData: null }),
 }));

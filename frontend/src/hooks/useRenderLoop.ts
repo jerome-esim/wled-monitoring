@@ -1,22 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { useAppStore } from '../store/appStore';
-import { ShaderRenderer } from '../services/shaderEngine';
-
-interface RendererMap {
-  [stripId: number]: ShaderRenderer;
-}
+import { MatrixShaderRenderer } from '../services/matrixShaderEngine';
 
 const TARGET_FPS = 40; // 40 FPS for Art-Net
 const FRAME_INTERVAL = 1000 / TARGET_FPS; // 25ms
 
 export const useRenderLoop = () => {
-  const { strips, shaders, assignments, playbackState, globalUniforms, setPreviewData } =
+  const { strips, shaders, activeShaderId, playbackState, globalUniforms, setMatrixData } =
     useAppStore();
-  const renderersRef = useRef<RendererMap>({});
+  const rendererRef = useRef<MatrixShaderRenderer | null>(null);
   const animationFrameRef = useRef<number>();
   const startTimeRef = useRef<number>(Date.now());
   const lastFrameTimeRef = useRef<number>(Date.now());
   const batchedDataRef = useRef<Map<number, Uint8Array>>(new Map());
+  const currentShaderIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!playbackState.isPlaying) {
@@ -44,54 +41,64 @@ export const useRenderLoop = () => {
       lastFrameTimeRef.current = now - (deltaTime % FRAME_INTERVAL);
       const currentTime = (now - startTimeRef.current) / 1000; // Convert to seconds
 
+      // Check if we have strips and an active shader
+      if (strips.length === 0 || !activeShaderId) {
+        animationFrameRef.current = requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      const activeShader = shaders.find((s) => s.id === activeShaderId);
+      if (!activeShader) {
+        animationFrameRef.current = requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      // Get matrix dimensions
+      const stripCount = strips.length;
+      const ledCount = strips[0]?.ledCount || 250; // Assuming all strips have same LED count
+
+      // Create or recreate renderer if needed
+      if (!rendererRef.current || currentShaderIdRef.current !== activeShaderId) {
+        if (rendererRef.current) {
+          rendererRef.current.dispose();
+        }
+        rendererRef.current = new MatrixShaderRenderer(stripCount, ledCount);
+        currentShaderIdRef.current = activeShaderId;
+
+        // Compile shader
+        const uniforms = {
+          ...globalUniforms,
+          time: currentTime,
+          resolution: [stripCount, ledCount] as [number, number],
+        };
+        const success = rendererRef.current.updateShader(activeShader.fragmentShader, uniforms);
+        if (!success) {
+          console.error('Failed to compile shader:', activeShaderId);
+          animationFrameRef.current = requestAnimationFrame(renderLoop);
+          return;
+        }
+      } else {
+        // Just update uniforms
+        const uniforms = {
+          ...globalUniforms,
+          time: currentTime,
+        };
+        rendererRef.current.updateUniforms(uniforms);
+      }
+
+      // Render the global matrix
+      const matrixData = rendererRef.current.render();
+
+      // Store for preview visualization
+      setMatrixData(matrixData);
+
       // Clear batched data
       batchedDataRef.current.clear();
 
-      // Render each strip that has a shader assigned
-      assignments.forEach((assignment) => {
-        const strip = strips.find((s) => s.id === assignment.stripId);
-        const shader = shaders.find((s) => s.id === assignment.shaderId);
-
-        if (!strip || !shader) return;
-
-        // Get or create renderer for this strip
-        if (!renderersRef.current[strip.id]) {
-          renderersRef.current[strip.id] = new ShaderRenderer(strip.ledCount);
-        }
-
-        const renderer = renderersRef.current[strip.id];
-
-        // Merge global uniforms with assignment-specific params
-        const uniforms = {
-          ...globalUniforms,
-          ...assignment.params,
-          time: currentTime,
-          resolution: [strip.ledCount, 1] as [number, number],
-        };
-
-        // Check if shader needs to be updated
-        const currentShader = (renderer as any).currentShaderId;
-        if (currentShader !== shader.id) {
-          const success = renderer.updateShader(shader.fragmentShader, uniforms);
-          if (success) {
-            (renderer as any).currentShaderId = shader.id;
-          } else {
-            console.error('Failed to compile shader:', shader.id);
-            return;
-          }
-        } else {
-          // Just update uniforms
-          renderer.updateUniforms(uniforms);
-        }
-
-        // Render and get RGB data
-        const rgbData = renderer.render();
-
-        // Store for preview visualization
-        setPreviewData(strip.id, rgbData);
-
-        // Batch data for sending
-        batchedDataRef.current.set(strip.id, rgbData);
+      // Extract data for each strip
+      strips.forEach((strip, index) => {
+        const stripData = rendererRef.current!.extractStripData(index, matrixData);
+        batchedDataRef.current.set(strip.id, stripData);
       });
 
       // Send all batched data in one request
@@ -116,18 +123,18 @@ export const useRenderLoop = () => {
     playbackState.isPlaying,
     strips,
     shaders,
-    assignments,
+    activeShaderId,
     globalUniforms,
-    setPreviewData,
+    setMatrixData,
   ]);
 
-  // Cleanup renderers when component unmounts
+  // Cleanup renderer when component unmounts
   useEffect(() => {
     return () => {
-      Object.values(renderersRef.current).forEach((renderer) => {
-        renderer.dispose();
-      });
-      renderersRef.current = {};
+      if (rendererRef.current) {
+        rendererRef.current.dispose();
+        rendererRef.current = null;
+      }
     };
   }, []);
 };

@@ -1,11 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import { useAppStore } from '../../store/appStore';
-import { useSocket } from '../../hooks/useSocket';
 
 export const StripCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { strips, selectedShaderId, shaders, assignments, setAssignment, previewData } = useAppStore();
-  const { applyShader } = useSocket();
+  const { strips, activeShaderId, shaders, matrixData } = useAppStore();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -18,145 +16,118 @@ export const StripCanvas: React.FC = () => {
     ctx.fillStyle = '#1f2937';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grid
-    ctx.strokeStyle = '#374151';
-    ctx.lineWidth = 1;
-    const gridSize = 50;
-    for (let x = 0; x < canvas.width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-    for (let y = 0; y < canvas.height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    }
-
-    // Draw strips
-    strips.forEach((strip) => {
-      const x = strip.position.x;
-      const y = strip.position.y;
-      const width = strip.orientation === 'horizontal' ? strip.ledCount * 2 : 20;
-      const height = strip.orientation === 'vertical' ? strip.ledCount * 2 : 20;
-
-      // Check if strip has a shader assigned
-      const assignment = assignments.find((a) => a.stripId === strip.id);
-      const assignedShader = assignment
-        ? shaders.find((s) => s.id === assignment.shaderId)
-        : null;
-
-      // Get preview data if available
-      const rgbData = previewData.get(strip.id);
-
-      // Draw strip background or live preview
-      if (rgbData && assignedShader) {
-        // Draw live preview from shader
-        if (strip.orientation === 'horizontal') {
-          // Draw horizontal strip with actual LED colors
-          const ledWidth = width / strip.ledCount;
-          for (let i = 0; i < strip.ledCount; i++) {
-            const r = rgbData[i * 3];
-            const g = rgbData[i * 3 + 1];
-            const b = rgbData[i * 3 + 2];
-            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-            ctx.fillRect(x + i * ledWidth, y, ledWidth, height);
-          }
-        } else {
-          // Draw vertical strip with actual LED colors
-          const ledHeight = height / strip.ledCount;
-          for (let i = 0; i < strip.ledCount; i++) {
-            const r = rgbData[i * 3];
-            const g = rgbData[i * 3 + 1];
-            const b = rgbData[i * 3 + 2];
-            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-            ctx.fillRect(x, y + i * ledHeight, width, ledHeight);
-          }
-        }
-      } else {
-        // Draw static background
-        ctx.fillStyle = assignedShader ? '#059669' : '#4b5563';
-        ctx.fillRect(x, y, width, height);
-      }
-
-      // Draw strip border
-      ctx.strokeStyle = assignedShader ? '#10b981' : '#60a5fa';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x, y, width, height);
-
-      // Draw strip label
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '12px sans-serif';
-      ctx.fillText(strip.name, x + 5, y - 5);
-
-      // Draw shader name if assigned
-      if (assignedShader) {
-        ctx.fillStyle = '#d1fae5';
-        ctx.font = '10px sans-serif';
-        ctx.fillText(assignedShader.name, x + 5, y + 15);
-      }
-
-      // Draw LED count
+    if (strips.length === 0) {
       ctx.fillStyle = '#9ca3af';
-      ctx.font = '10px sans-serif';
-      ctx.fillText(`${strip.ledCount} LEDs`, x + 5, y + height + 15);
-    });
-  }, [strips, assignments, shaders, previewData]);
-
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current) return;
-
-    // Need a selected shader to assign
-    if (!selectedShaderId) {
-      alert('Please select a shader first');
+      ctx.font = '16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('No strips configured', canvas.width / 2, canvas.height / 2);
       return;
     }
 
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const stripCount = strips.length;
+    const ledCount = strips[0]?.ledCount || 250;
 
-    // Find clicked strip
-    for (const strip of strips) {
-      const stripX = strip.position.x;
-      const stripY = strip.position.y;
-      const width = strip.orientation === 'horizontal' ? strip.ledCount * 2 : 20;
-      const height = strip.orientation === 'vertical' ? strip.ledCount * 2 : 20;
+    // Calculate dimensions for matrix display
+    const padding = 20;
+    const matrixWidth = canvas.width - padding * 2;
+    const matrixHeight = canvas.height - padding * 2;
 
-      if (x >= stripX && x <= stripX + width && y >= stripY && y <= stripY + height) {
-        // Assign shader to strip
-        const assignment = {
-          stripId: strip.id,
-          shaderId: selectedShaderId,
-          params: {}, // Will use global params
-        };
+    const stripWidth = matrixWidth / stripCount;
+    const ledHeight = matrixHeight / ledCount;
 
-        setAssignment(assignment);
-        applyShader(assignment);
+    // Draw the active shader name
+    const activeShader = activeShaderId ? shaders.find((s) => s.id === activeShaderId) : null;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(
+      activeShader ? `Active: ${activeShader.name}` : 'No active shader',
+      padding,
+      15
+    );
 
-        console.log(`Assigned shader ${selectedShaderId} to strip ${strip.name}`);
-        break;
-      }
+    // Draw matrix grid
+    ctx.strokeStyle = '#374151';
+    ctx.lineWidth = 1;
+
+    // Draw vertical lines (strip separators)
+    for (let i = 0; i <= stripCount; i++) {
+      const x = padding + i * stripWidth;
+      ctx.beginPath();
+      ctx.moveTo(x, padding);
+      ctx.lineTo(x, padding + matrixHeight);
+      ctx.stroke();
     }
-  };
+
+    // Draw strip labels
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    for (let i = 0; i < stripCount; i++) {
+      const x = padding + i * stripWidth + stripWidth / 2;
+      ctx.fillText(`S${i + 1}`, x, padding - 5);
+    }
+
+    // Draw the LED matrix if we have data
+    if (matrixData && activeShader) {
+      // Matrix data format: [strip0_led0_R, strip0_led0_G, strip0_led0_B, ...]
+      // Organized as rows (each row is a horizontal line across all strips)
+
+      for (let led = 0; led < ledCount; led++) {
+        for (let strip = 0; strip < stripCount; strip++) {
+          // Calculate pixel index in the matrix data
+          // Matrix is stored row-major: each row contains all strips for that LED position
+          const pixelIndex = (led * stripCount + strip) * 3;
+
+          const r = matrixData[pixelIndex];
+          const g = matrixData[pixelIndex + 1];
+          const b = matrixData[pixelIndex + 2];
+
+          // Draw the LED pixel
+          const x = padding + strip * stripWidth;
+          const y = padding + led * ledHeight;
+
+          ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+          ctx.fillRect(x, y, stripWidth, ledHeight);
+        }
+      }
+    } else {
+      // Draw placeholder grid
+      ctx.fillStyle = '#4b5563';
+      for (let i = 0; i < stripCount; i++) {
+        const x = padding + i * stripWidth;
+        ctx.fillRect(x, padding, stripWidth, matrixHeight);
+      }
+
+      // Message
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        'Select a shader and press Play to see the preview',
+        canvas.width / 2,
+        canvas.height / 2
+      );
+    }
+
+  }, [strips, activeShaderId, shaders, matrixData]);
 
   return (
     <div className="h-full bg-gray-800 rounded-lg overflow-hidden">
       <div className="p-4 border-b border-gray-700">
-        <h2 className="text-lg font-semibold text-white">LED Layout - Live Preview</h2>
+        <h2 className="text-lg font-semibold text-white">LED Matrix - Live Preview</h2>
         <p className="text-sm text-gray-400 mt-1">
-          {strips.length} strip{strips.length !== 1 ? 's' : ''} configured • Click to assign selected shader
+          {strips.length} strip{strips.length !== 1 ? 's' : ''} × {strips[0]?.ledCount || 0} LEDs
+          {' • '}
+          {strips.length * (strips[0]?.ledCount || 0)} total LEDs
         </p>
       </div>
       <div className="p-4">
         <canvas
           ref={canvasRef}
           width={800}
-          height={400}
-          onClick={handleCanvasClick}
-          className="border border-gray-700 rounded cursor-pointer"
+          height={600}
+          className="border border-gray-700 rounded"
         />
       </div>
     </div>

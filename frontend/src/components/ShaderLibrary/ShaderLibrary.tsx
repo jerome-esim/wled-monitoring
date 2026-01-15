@@ -4,8 +4,15 @@ import { useSocket } from '../../hooks/useSocket';
 import type { ShaderConfig } from '@shared/types';
 
 export const ShaderLibrary: React.FC = () => {
-  const { shaders, selectedShaderId, setSelectedShaderId } = useAppStore();
+  const { shaders, activeShaderId, setActiveShaderId, selectedShaderId, setSelectedShaderId } = useAppStore();
   const { createShader, deleteShader } = useSocket();
+
+  const handleShaderClick = (shaderId: string) => {
+    // Set as active shader (for rendering)
+    setActiveShaderId(shaderId);
+    // Also select for editing
+    setSelectedShaderId(shaderId);
+  };
 
   const handleCreateNew = () => {
     const newShader: ShaderConfig = {
@@ -44,6 +51,9 @@ void main() {
       if (selectedShaderId === id) {
         setSelectedShaderId(null);
       }
+      if (activeShaderId === id) {
+        setActiveShaderId(null);
+      }
     }
   };
 
@@ -73,25 +83,35 @@ void main() {
             <div className="space-y-1 px-2">
               {shaders
                 .filter((s) => s.category === category)
-                .map((shader) => (
-                  <div
-                    key={shader.id}
-                    onClick={() => setSelectedShaderId(shader.id)}
-                    className={`p-3 rounded cursor-pointer transition-colors group flex items-center justify-between ${
-                      selectedShaderId === shader.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
-                    }`}
-                  >
-                    <span className="font-medium">{shader.name}</span>
-                    <button
-                      onClick={(e) => handleDelete(shader.id, e)}
-                      className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity"
+                .map((shader) => {
+                  const isActive = activeShaderId === shader.id;
+                  const isSelected = selectedShaderId === shader.id;
+
+                  return (
+                    <div
+                      key={shader.id}
+                      onClick={() => handleShaderClick(shader.id)}
+                      className={`p-3 rounded cursor-pointer transition-colors group flex items-center justify-between ${
+                        isActive
+                          ? 'bg-green-600 text-white'
+                          : isSelected
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                      }`}
                     >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-2">
+                        {isActive && <span className="text-xs">▶</span>}
+                        <span className="font-medium">{shader.name}</span>
+                      </div>
+                      <button
+                        onClick={(e) => handleDelete(shader.id, e)}
+                        className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
             </div>
           </div>
         ))}
