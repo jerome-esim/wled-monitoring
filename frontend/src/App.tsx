@@ -3,7 +3,7 @@ import { useSocket } from './hooks/useSocket';
 import { useRenderLoop } from './hooks/useRenderLoop';
 import { useAppStore } from './store/appStore';
 import { ShaderLibrary } from './components/ShaderLibrary/ShaderLibrary';
-import { ShaderEditor } from './components/ShaderEditor/ShaderEditor';
+// import { ShaderEditor } from './components/ShaderEditor/ShaderEditor';
 import { StripCanvas } from './components/Canvas/StripCanvas';
 import { Controls } from './components/Controls/Controls';
 import { LayerManager } from './components/LayerManager/LayerManager';
@@ -80,17 +80,17 @@ function App() {
           <ShaderLibrary />
         </div>
 
-        {/* Center - Canvas and Editor */}
+        {/* Center - Canvas */}
         <div className="col-span-7 flex flex-col gap-4 overflow-hidden">
           {/* Canvas Layout */}
-          <div className="h-1/2">
+          <div className="h-full">
             <StripCanvas />
           </div>
 
-          {/* Shader Editor */}
-          <div className="h-1/2">
+          {/* Shader Editor - Hidden for now */}
+          {/* <div className="h-1/2">
             <ShaderEditor />
-          </div>
+          </div> */}
         </div>
 
         {/* Right Sidebar - Controls and Layers */}
