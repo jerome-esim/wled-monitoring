@@ -176,7 +176,10 @@ precision highp float;
 
 uniform float time;
 uniform float speed;
-uniform float intensity;
+uniform float density;
+uniform float chaserSize;
+uniform float trailLength;
+uniform float reverse;
 uniform vec4 color1;
 uniform vec2 resolution;
 
@@ -188,22 +191,20 @@ void main() {
   float height = resolution.y;
   float currentCol = floor(uv.x * width);
 
-  // Number of chasers based on intensity (1-3)
-  int numChasers = int(clamp(intensity * 3.0, 1.0, 3.0));
+  // Number of chasers based on density
+  int numChasers = int(clamp(density, 1.0, 10.0));
   float totalCells = width * height;
 
-  // Chaser parameters
-  float chaserSize = 0.05; // 5% of height
-  float trailLength = 0.1; // 10% of height
+  // Chaser parameters from uniforms
   float chaserSizeCells = chaserSize * height;
   float trailLengthCells = trailLength * height;
   float totalLength = chaserSizeCells + trailLengthCells;
 
-  for (int c = 0; c < 3; c++) {
+  for (int c = 0; c < 10; c++) {
     if (c >= numChasers) break;
 
     // Offset each chaser
-    float offset = (float(c) / float(numChasers)) * totalCells;
+    float offset = (float(c) / density) * totalCells;
     float animatedPos = time * speed * 50.0;
     float globalPos = mod(animatedPos + offset, totalCells);
 
@@ -222,6 +223,11 @@ void main() {
       if (abs(pixelColumn - currentCol) < 0.5) {
         // Direction for this column (zigzag)
         bool columnGoesDown = mod(pixelColumn, 2.0) < 0.5;
+
+        // Apply reverse if needed
+        if (reverse > 0.5) {
+          columnGoesDown = !columnGoesDown;
+        }
 
         // Y position of this pixel
         float pixelY;
@@ -262,7 +268,10 @@ void main() {
 `,
         uniforms: {
           speed: 1.0,
-          intensity: 1.0,
+          density: 1.0,
+          chaserSize: 0.05,
+          trailLength: 0.1,
+          reverse: 0.0,
           color1: [1.0, 0.5, 0.0, 1.0], // Orange
         },
         createdAt: Date.now(),
