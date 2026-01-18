@@ -2,7 +2,6 @@ use crate::types::{BlendMode, ShaderLayer, ShaderParams};
 use anyhow::Result;
 use bytemuck::{Pod, Zeroable};
 use std::collections::HashMap;
-use wgpu::util::DeviceExt;
 
 // Shader uniforms aligned to 16 bytes for GPU
 #[repr(C)]
@@ -28,6 +27,18 @@ struct ShaderUniforms {
     _padding: [f32; 4], // Align to 16 bytes
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+struct CompositeUniforms {
+    width: f32,
+    height: f32,
+    layer_count: u32,
+    _padding: u32,
+
+    opacities: [f32; 8],
+    blend_modes: [u32; 8],
+}
+
 pub struct ComputeShader {
     pipeline: wgpu::ComputePipeline,
     bind_group_layout: wgpu::BindGroupLayout,
@@ -47,9 +58,11 @@ pub struct GpuShaderEngine {
     // Shaders
     shaders: HashMap<String, ComputeShader>,
 
-    // Layer rendering
-    layer_buffers: Vec<wgpu::Buffer>,
-    composite_pipeline: Option<wgpu::ComputePipeline>,
+    // Multi-layer rendering (up to 8 layers)
+    layer_buffers: Vec<wgpu::Buffer>, // One buffer per layer
+    composite_shader: Option<ComputeShader>,
+    composite_uniform_buffer: wgpu::Buffer,
+    composite_bind_group_layout: wgpu::BindGroupLayout,
 }
 
 impl GpuShaderEngine {
@@ -108,6 +121,136 @@ impl GpuShaderEngine {
             mapped_at_creation: false,
         });
 
+        // Composite uniform buffer
+        let composite_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Composite Uniform Buffer"),
+            size: std::mem::size_of::<CompositeUniforms>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        // Create layer buffers (up to 8 layers)
+        let mut layer_buffers = Vec::new();
+        for i in 0..8 {
+            let layer_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some(&format!("Layer {} Buffer", i)),
+                size: buffer_size,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            layer_buffers.push(layer_buffer);
+        }
+
+        // Create composite bind group layout
+        let composite_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Composite Bind Group Layout"),
+            entries: &[
+                // 8 layer input buffers (bindings 0-7)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 4,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 5,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 6,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 7,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // Output buffer (binding 8)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 8,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: false },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+                // Uniform buffer (binding 9)
+                wgpu::BindGroupLayoutEntry {
+                    binding: 9,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
+        });
+
         let mut engine = Self {
             device,
             queue,
@@ -117,8 +260,10 @@ impl GpuShaderEngine {
             staging_buffer,
             uniform_buffer,
             shaders: HashMap::new(),
-            layer_buffers: Vec::new(),
-            composite_pipeline: None,
+            layer_buffers,
+            composite_shader: None,
+            composite_uniform_buffer,
+            composite_bind_group_layout,
         };
 
         // Compile built-in shaders
@@ -136,6 +281,143 @@ impl GpuShaderEngine {
 
         // Lightning shader
         self.compile_shader("lightning-flash", include_str!("shaders/lightning.wgsl"))?;
+
+        // Composite shader
+        self.compile_composite_shader()?;
+
+        Ok(())
+    }
+
+    fn compile_composite_shader(&mut self) -> Result<()> {
+        let shader_module = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Composite Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/composite.wgsl").into()),
+        });
+
+        let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Composite Pipeline Layout"),
+            bind_group_layouts: &[&self.composite_bind_group_layout],
+            push_constant_ranges: &[],
+        });
+
+        let compute_pipeline = self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: Some("Composite Pipeline"),
+            layout: Some(&pipeline_layout),
+            module: &shader_module,
+            entry_point: "main",
+            compilation_options: Default::default(),
+            cache: None,
+        });
+
+        self.composite_shader = Some(ComputeShader {
+            pipeline: compute_pipeline,
+            bind_group_layout: self.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("Composite Bind Group Layout (copy)"),
+                entries: &[
+                    // Same as composite_bind_group_layout - 8 inputs + 1 output + 1 uniform
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 3,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 4,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 5,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 6,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 7,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 8,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: false },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 9,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                ],
+            }),
+        });
 
         Ok(())
     }
@@ -208,79 +490,159 @@ impl GpuShaderEngine {
         time: f32,
         master_brightness: f32,
     ) -> Result<Vec<u8>> {
-        // Filter enabled layers
-        let enabled_layers: Vec<_> = layers.iter().filter(|l| l.enabled).collect();
+        // Filter and sort enabled layers
+        let mut enabled_layers: Vec<_> = layers.iter().filter(|l| l.enabled).collect();
+        enabled_layers.sort_by_key(|l| l.order);
 
         if enabled_layers.is_empty() {
             // Return black
             return Ok(vec![0u8; (self.strip_count * self.led_count * 3) as usize]);
         }
 
-        // For now: render first enabled layer only
-        // TODO: Implement multi-layer compositing
-        let layer = enabled_layers[0];
-        let merged_params = self.merge_params(&layer.params, global_params);
-
-        // Create uniforms
-        let uniforms = ShaderUniforms {
-            time,
-            width: self.strip_count as f32,
-            height: self.led_count as f32,
-            speed: merged_params.speed.unwrap_or(1.0),
-            color1: merged_params.color1.unwrap_or([1.0, 0.0, 0.0, 1.0]),
-            color2: merged_params.color2.unwrap_or([0.0, 0.0, 1.0, 1.0]),
-            intensity: merged_params.intensity.unwrap_or(1.0),
-            density: merged_params.density.unwrap_or(1.0),
-            chaser_size: merged_params.chaser_size.unwrap_or(0.05),
-            trail_length: merged_params.trail_length.unwrap_or(0.1),
-            reverse: merged_params.reverse.unwrap_or(0.0),
-            bpm: merged_params.bpm.unwrap_or(120.0),
-            direction: merged_params.direction.unwrap_or([1.0, 0.0]),
-            _padding: [0.0; 4],
-        };
-
-        // Upload uniforms to GPU
-        self.queue.write_buffer(&self.uniform_buffer, 0, bytemuck::bytes_of(&uniforms));
-
-        // Get shader pipeline
-        let shader = self.shaders.get(&layer.shader_id)
-            .ok_or_else(|| anyhow::anyhow!("Shader not found: {}", layer.shader_id))?;
-
-        // Create bind group
-        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("Shader Bind Group"),
-            layout: &shader.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: self.output_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: self.uniform_buffer.as_entire_binding(),
-                },
-            ],
-        });
-
         // Create command encoder
         let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("Compute Encoder"),
+            label: Some("Multi-Layer Render Encoder"),
         });
 
-        // Dispatch compute shader
-        {
-            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                label: Some("Compute Pass"),
-                timestamp_writes: None,
+        // Render each layer to its buffer
+        for (i, layer) in enabled_layers.iter().enumerate() {
+            if i >= 8 {
+                tracing::warn!("More than 8 layers, skipping extras");
+                break;
+            }
+
+            let merged_params = self.merge_params(&layer.params, global_params);
+
+            // Create uniforms for this layer
+            let uniforms = ShaderUniforms {
+                time,
+                width: self.strip_count as f32,
+                height: self.led_count as f32,
+                speed: merged_params.speed.unwrap_or(1.0),
+                color1: merged_params.color1.unwrap_or([1.0, 0.0, 0.0, 1.0]),
+                color2: merged_params.color2.unwrap_or([0.0, 0.0, 1.0, 1.0]),
+                intensity: merged_params.intensity.unwrap_or(1.0),
+                density: merged_params.density.unwrap_or(1.0),
+                chaser_size: merged_params.chaser_size.unwrap_or(0.05),
+                trail_length: merged_params.trail_length.unwrap_or(0.1),
+                reverse: merged_params.reverse.unwrap_or(0.0),
+                bpm: merged_params.bpm.unwrap_or(120.0),
+                direction: merged_params.direction.unwrap_or([1.0, 0.0]),
+                _padding: [0.0; 4],
+            };
+
+            // Upload uniforms
+            self.queue.write_buffer(&self.uniform_buffer, 0, bytemuck::bytes_of(&uniforms));
+
+            // Get shader pipeline
+            let shader = self.shaders.get(&layer.shader_id)
+                .ok_or_else(|| anyhow::anyhow!("Shader not found: {}", layer.shader_id))?;
+
+            // Create bind group for this layer
+            let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some(&format!("Layer {} Bind Group", i)),
+                layout: &shader.bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: self.layer_buffers[i].as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: self.uniform_buffer.as_entire_binding(),
+                    },
+                ],
             });
 
-            compute_pass.set_pipeline(&shader.pipeline);
-            compute_pass.set_bind_group(0, &bind_group, &[]);
+            // Dispatch compute shader for this layer
+            {
+                let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                    label: Some(&format!("Layer {} Compute Pass", i)),
+                    timestamp_writes: None,
+                });
 
-            // Dispatch workgroups (8x8 threads per workgroup)
-            let workgroup_x = (self.strip_count + 7) / 8;
-            let workgroup_y = (self.led_count + 7) / 8;
-            compute_pass.dispatch_workgroups(workgroup_x, workgroup_y, 1);
+                compute_pass.set_pipeline(&shader.pipeline);
+                compute_pass.set_bind_group(0, &bind_group, &[]);
+
+                let workgroup_x = (self.strip_count + 7) / 8;
+                let workgroup_y = (self.led_count + 7) / 8;
+                compute_pass.dispatch_workgroups(workgroup_x, workgroup_y, 1);
+            }
+        }
+
+        // If multiple layers, composite them
+        if enabled_layers.len() > 1 {
+            // Prepare composite uniforms
+            let mut opacities = [0.0f32; 8];
+            let mut blend_modes = [0u32; 8];
+
+            for (i, layer) in enabled_layers.iter().enumerate().take(8) {
+                opacities[i] = layer.opacity;
+                blend_modes[i] = match layer.blend_mode {
+                    BlendMode::Normal => 0,
+                    BlendMode::Add => 1,
+                    BlendMode::Multiply => 2,
+                    BlendMode::Screen => 3,
+                };
+            }
+
+            let composite_uniforms = CompositeUniforms {
+                width: self.strip_count as f32,
+                height: self.led_count as f32,
+                layer_count: enabled_layers.len().min(8) as u32,
+                _padding: 0,
+                opacities,
+                blend_modes,
+            };
+
+            // Upload composite uniforms
+            self.queue.write_buffer(&self.composite_uniform_buffer, 0, bytemuck::bytes_of(&composite_uniforms));
+
+            // Get composite shader
+            let composite = self.composite_shader.as_ref()
+                .ok_or_else(|| anyhow::anyhow!("Composite shader not compiled"))?;
+
+            // Create composite bind group
+            let composite_bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("Composite Bind Group"),
+                layout: &composite.bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry { binding: 0, resource: self.layer_buffers[0].as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 1, resource: self.layer_buffers[1].as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 2, resource: self.layer_buffers[2].as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 3, resource: self.layer_buffers[3].as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 4, resource: self.layer_buffers[4].as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 5, resource: self.layer_buffers[5].as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 6, resource: self.layer_buffers[6].as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 7, resource: self.layer_buffers[7].as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 8, resource: self.output_buffer.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 9, resource: self.composite_uniform_buffer.as_entire_binding() },
+                ],
+            });
+
+            // Dispatch composite shader
+            {
+                let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                    label: Some("Composite Pass"),
+                    timestamp_writes: None,
+                });
+
+                compute_pass.set_pipeline(&composite.pipeline);
+                compute_pass.set_bind_group(0, &composite_bind_group, &[]);
+
+                let workgroup_x = (self.strip_count + 7) / 8;
+                let workgroup_y = (self.led_count + 7) / 8;
+                compute_pass.dispatch_workgroups(workgroup_x, workgroup_y, 1);
+            }
+        } else {
+            // Single layer - copy directly to output
+            encoder.copy_buffer_to_buffer(
+                &self.layer_buffers[0],
+                0,
+                &self.output_buffer,
+                0,
+                (self.strip_count * self.led_count * 4) as u64,
+            );
         }
 
         // Copy output to staging buffer
