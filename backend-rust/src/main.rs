@@ -1,10 +1,10 @@
 mod artnet;
-mod gpu;
+mod cpu;
 mod types;
 mod websocket;
 
 use artnet::ArtNetSender;
-use gpu::GpuShaderEngine;
+use cpu::CpuShaderEngine;
 use tokio::sync::mpsc;
 use tokio::time::{interval, Duration, Instant};
 use tracing::{error, info};
@@ -43,12 +43,12 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter("wled_backend=debug,warn")
         .init();
 
-    info!("🚀 Starting WLED Rust Backend (GPU-accelerated)");
+    info!("🚀 Starting WLED Rust Backend (CPU-accelerated)");
 
-    // Initialize GPU shader engine (13 strips × 250 LEDs)
-    info!("Initializing GPU shader engine...");
-    let mut gpu_engine = GpuShaderEngine::new(13, 250).await?;
-    info!("✅ GPU engine ready");
+    // Initialize CPU shader engine (13 strips × 250 LEDs)
+    info!("Initializing CPU shader engine...");
+    let mut cpu_engine = CpuShaderEngine::new(13, 250)?;
+    info!("✅ CPU engine ready");
 
     // Initialize Art-Net sender
     info!("Initializing Art-Net sender...");
@@ -125,15 +125,12 @@ async fn main() -> anyhow::Result<()> {
         let current_time = state.start_time.elapsed().as_secs_f32();
 
         // Render layers to RGB matrix
-        let rgb_matrix = match gpu_engine
-            .render_layers(
-                &state.layers,
-                &state.global_params,
-                current_time,
-                state.master_brightness,
-            )
-            .await
-        {
+        let rgb_matrix = match cpu_engine.render_layers(
+            &state.layers,
+            &state.global_params,
+            current_time,
+            state.master_brightness,
+        ) {
             Ok(data) => data,
             Err(e) => {
                 error!("Render error: {}", e);
@@ -144,7 +141,7 @@ async fn main() -> anyhow::Result<()> {
         // Extract and send data for each strip
         let mut strip_data = Vec::new();
         for strip in &state.strips {
-            let data = gpu_engine.extract_strip_data(&rgb_matrix, strip.id - 1); // 0-indexed
+            let data = cpu_engine.extract_strip_data(&rgb_matrix, strip.id - 1); // 0-indexed
             strip_data.push((strip.id, data));
         }
 
