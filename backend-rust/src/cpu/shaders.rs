@@ -13,15 +13,16 @@ pub fn zigzag_chaser(uv: [f32; 2], time: f32, params: &ShaderParams) -> [f32; 3]
     let num_chasers = density as i32;
 
     // Convert UV to zigzag position (0.0 - 1.0)
-    let y_int = uv[1].floor() as i32;
-    let zigzag_pos = if y_int % 2 == 0 {
-        uv[0]  // Left to right
+    // Vertical zigzag: down first column, up second column, down third, etc.
+    let x_int = uv[0].floor() as i32;
+    let zigzag_pos = if x_int % 2 == 0 {
+        uv[1]  // Down (top to bottom)
     } else {
-        1.0 - uv[0]  // Right to left
+        1.0 - uv[1]  // Up (bottom to top)
     };
 
     // Linear position along the entire strip
-    let linear_pos = uv[1] + zigzag_pos;
+    let linear_pos = uv[0] + zigzag_pos;
 
     let mut final_color = [0.0, 0.0, 0.0];
 
