@@ -43,8 +43,8 @@ const DEFAULT_LAYOUT: LayoutConfig = {
 };
 
 function App() {
-  const { connected, on, updateConfig } = useSocket();
-  const { setShaders, setStrips, strips } = useAppStore();
+  const { connected, on, updateConfig, updateLayers } = useSocket();
+  const { setShaders, setStrips, strips, layers } = useAppStore();
 
   // Start render loop for Art-Net output
   useRenderLoop();
@@ -57,6 +57,29 @@ function App() {
       updateConfig(DEFAULT_LAYOUT.strips);
     }
 
+    // Initialize default shaders (Rust backend has these built-in)
+    const defaultShaders: ShaderConfig[] = [
+      {
+        id: 'zigzag-chaser',
+        name: 'Zigzag Chaser',
+        code: '', // Built-in to Rust backend
+        type: 'builtin',
+      },
+      {
+        id: 'gradient-sweep',
+        name: 'Gradient Sweep',
+        code: '', // Built-in to Rust backend
+        type: 'builtin',
+      },
+      {
+        id: 'lightning-flash',
+        name: 'Lightning Flash',
+        code: '', // Built-in to Rust backend
+        type: 'builtin',
+      },
+    ];
+    setShaders(defaultShaders);
+
     // Subscribe to shader list updates
     const unsubscribe = on<ShaderConfig[]>('shaders:list', (shaders) => {
       setShaders(shaders);
@@ -64,6 +87,14 @@ function App() {
 
     return unsubscribe;
   }, [on, setShaders, setStrips, strips.length, updateConfig]);
+
+  // Sync layers to backend whenever they change
+  useEffect(() => {
+    if (connected && layers.length >= 0) {
+      console.log('📤 Sending layers to backend:', layers.length);
+      updateLayers(layers);
+    }
+  }, [layers, connected, updateLayers]);
 
   return (
     <div className="h-screen bg-gray-900 text-white flex flex-col">
