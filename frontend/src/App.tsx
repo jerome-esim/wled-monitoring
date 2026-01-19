@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useSocket } from './hooks/useSocket';
-// import { useRenderLoop } from './hooks/useRenderLoop'; // Disabled - Rust backend handles rendering
+import { useRenderLoop } from './hooks/useRenderLoop'; // For local preview only
 import { useAppStore } from './store/appStore';
 // import { ShaderLibrary } from './components/ShaderLibrary/ShaderLibrary';
 // import { ShaderEditor } from './components/ShaderEditor/ShaderEditor';
@@ -46,8 +46,8 @@ function App() {
   const { connected, on, updateConfig, updateLayers, startPlayback, stopPlayback } = useSocket();
   const { setShaders, setStrips, strips, layers, playbackState } = useAppStore();
 
-  // NOTE: useRenderLoop() is disabled - Rust backend handles all rendering now
-  // useRenderLoop();
+  // Local render loop for preview canvas (Rust backend handles Art-Net)
+  useRenderLoop();
 
   // Initialize default shaders once on mount
   useEffect(() => {
@@ -81,13 +81,18 @@ function App() {
     }
   }, []); // Run only once on mount
 
-  // Send strips to backend when connected
+  // Send strips to backend once when connected
+  const hasSentStripsRef = useRef(false);
   useEffect(() => {
-    if (connected && strips.length > 0) {
+    if (connected && strips.length > 0 && !hasSentStripsRef.current) {
       console.log('📤 Sending strips config to backend:', strips.length);
-      updateConfig(strips);
+      updateConfigRef.current(strips);
+      hasSentStripsRef.current = true;
     }
-  }, [connected, strips, updateConfig]);
+    if (!connected) {
+      hasSentStripsRef.current = false; // Reset on disconnect
+    }
+  }, [connected, strips]);
 
   // Subscribe to shader list updates
   useEffect(() => {
@@ -100,10 +105,12 @@ function App() {
 
   // Store socket functions in refs to avoid re-triggering on every render
   const updateLayersRef = useRef(updateLayers);
+  const updateConfigRef = useRef(updateConfig);
   const startPlaybackRef = useRef(startPlayback);
   const stopPlaybackRef = useRef(stopPlayback);
 
   updateLayersRef.current = updateLayers;
+  updateConfigRef.current = updateConfig;
   startPlaybackRef.current = startPlayback;
   stopPlaybackRef.current = stopPlayback;
 

@@ -177,12 +177,13 @@ export const useRenderLoop = () => {
         batchedDataRef.current.set(strip.id, stripData);
       });
 
-      // Send all batched data in one request
-      if (batchedDataRef.current.size > 0) {
-        sendBatchedArtNetData(batchedDataRef.current).catch((err) => {
-          console.error('Failed to send Art-Net data:', err);
-        });
-      }
+      // NOTE: Art-Net sending disabled - Rust backend handles it
+      // The frontend only renders for local preview
+      // if (batchedDataRef.current.size > 0) {
+      //   sendBatchedArtNetData(batchedDataRef.current).catch((err) => {
+      //     console.error('Failed to send Art-Net data:', err);
+      //   });
+      // }
 
       // Continue loop
       animationFrameRef.current = requestAnimationFrame(renderLoop);
