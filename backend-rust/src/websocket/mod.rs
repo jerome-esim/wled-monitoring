@@ -31,19 +31,24 @@ impl WebSocketServer {
 }
 
 async fn handle_socket(mut socket: WebSocket, command_tx: mpsc::UnboundedSender<ClientMessage>) {
+    tracing::info!("✅ New WebSocket connection established");
+
     // Receive messages from client
     while let Some(Ok(msg)) = socket.recv().await {
         if let Message::Text(text) = msg {
+            tracing::info!("📩 Received message: {}", &text[..text.len().min(200)]); // Log first 200 chars
+
             match serde_json::from_str::<ClientMessage>(&text) {
                 Ok(cmd) => {
-                    tracing::debug!("Received command: {:?}", cmd);
+                    tracing::info!("✅ Parsed command: {:?}", cmd);
                     if command_tx.send(cmd).is_err() {
                         tracing::error!("Failed to send command to engine");
                         break;
                     }
                 }
                 Err(e) => {
-                    tracing::error!("Failed to parse WebSocket message: {}", e);
+                    tracing::error!("❌ Failed to parse message: {}", e);
+                    tracing::error!("   Raw message: {}", text);
                 }
             }
         }
