@@ -175,6 +175,45 @@ function App() {
           }
         `,
       },
+      {
+        id: 'right-to-left',
+        name: 'Right to Left',
+        code: '', // Built-in to Rust backend
+        type: 'builtin',
+        fragmentShader: `
+          precision highp float;
+          uniform vec2 resolution;
+          uniform float time;
+          uniform vec4 color1;
+          uniform vec4 color2;
+          uniform float speed;
+          uniform float trailLength;
+
+          void main() {
+            vec2 uv = gl_FragCoord.xy / resolution;
+
+            // Position qui se déplace de droite (1.0) vers gauche (0.0)
+            float wave_pos = fract(time * speed * 0.3);
+
+            // Position LED inversée (droite à gauche)
+            float led_pos = 1.0 - uv.y;
+
+            // Distance de la vague
+            float dist = abs(led_pos - wave_pos);
+
+            // Intensité basée sur la distance
+            float intensity = 0.0;
+            if (dist < trailLength) {
+              intensity = 1.0 - (dist / trailLength);
+            }
+
+            // Mélange des couleurs basé sur la position
+            vec3 color = mix(color1.rgb, color2.rgb, led_pos);
+
+            gl_FragColor = vec4(color * intensity, 1.0);
+          }
+        `,
+      },
     ];
     setShaders(defaultShaders);
   }, []); // Run only once on mount
