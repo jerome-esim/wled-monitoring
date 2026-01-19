@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct StripConfig {
     pub id: u32,
     pub name: String,
@@ -11,6 +12,7 @@ pub struct StripConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ShaderLayer {
     pub id: String,
     pub shader_id: String,
@@ -32,6 +34,7 @@ pub enum BlendMode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ShaderParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color1: Option<[f32; 4]>,
