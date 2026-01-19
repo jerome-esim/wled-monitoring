@@ -57,18 +57,120 @@ function App() {
         name: 'Zigzag Chaser',
         code: '', // Built-in to Rust backend
         type: 'builtin',
+        fragmentShader: `
+          precision highp float;
+          uniform vec2 resolution;
+          uniform float time;
+          uniform vec4 color1;
+          uniform vec4 color2;
+          uniform float density;
+          uniform float chaserSize;
+          uniform float trailLength;
+          uniform float reverse;
+          uniform float speed;
+
+          void main() {
+            vec2 uv = gl_FragCoord.xy / resolution;
+            float y_int = floor(uv.y * resolution.y);
+            float zigzag_pos = mod(y_int, 2.0) == 0.0 ? uv.x : 1.0 - uv.x;
+            float linear_pos = uv.y + zigzag_pos;
+
+            vec3 finalColor = vec3(0.0);
+            float num_chasers = clamp(density, 1.0, 10.0);
+
+            for (float i = 0.0; i < 10.0; i++) {
+              if (i >= num_chasers) break;
+              float chaser_offset = i / num_chasers;
+              float chaser_pos = fract(time * speed * 0.5 + chaser_offset);
+              if (reverse > 0.5) chaser_pos = 1.0 - chaser_pos;
+
+              float dist = abs(linear_pos - chaser_pos);
+              if (dist > 0.5) dist = 1.0 - dist;
+
+              if (dist < chaserSize) {
+                float head_brightness = 1.0 - (dist / chaserSize);
+                float t = i / max(num_chasers, 1.0);
+                vec3 chaser_color = mix(color1.rgb, color2.rgb, t);
+                finalColor = max(finalColor, chaser_color * head_brightness);
+              } else if (dist < trailLength) {
+                float trail_brightness = 1.0 - (dist / trailLength);
+                trail_brightness = trail_brightness * trail_brightness;
+                float t = i / max(num_chasers, 1.0);
+                vec3 chaser_color = mix(color1.rgb, color2.rgb, t);
+                finalColor = max(finalColor, chaser_color * trail_brightness * 0.5);
+              }
+            }
+
+            gl_FragColor = vec4(finalColor, 1.0);
+          }
+        `,
       },
       {
         id: 'gradient-sweep',
         name: 'Gradient Sweep',
         code: '', // Built-in to Rust backend
         type: 'builtin',
+        fragmentShader: `
+          precision highp float;
+          uniform vec2 resolution;
+          uniform float time;
+          uniform vec4 color1;
+          uniform vec4 color2;
+          uniform float speed;
+          uniform vec2 direction;
+          uniform float intensity;
+
+          void main() {
+            vec2 uv = gl_FragCoord.xy / resolution;
+            vec2 dir_norm = normalize(direction);
+            float projected = uv.x * dir_norm.x + uv.y * dir_norm.y;
+            float animated_pos = fract(projected + time * speed * 0.2);
+
+            vec3 color = mix(color1.rgb, color2.rgb, animated_pos);
+            gl_FragColor = vec4(color * intensity, 1.0);
+          }
+        `,
       },
       {
         id: 'lightning-flash',
         name: 'Lightning Flash',
         code: '', // Built-in to Rust backend
         type: 'builtin',
+        fragmentShader: `
+          precision highp float;
+          uniform vec2 resolution;
+          uniform float time;
+          uniform vec4 color1;
+          uniform float bpm;
+          uniform float intensity;
+
+          float random(vec2 st) {
+            return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+          }
+
+          void main() {
+            vec2 uv = gl_FragCoord.xy / resolution;
+            float beat_duration = 60.0 / bpm;
+            float beat_phase = fract(time / beat_duration);
+            float flash_duration = 0.15;
+
+            if (beat_phase > flash_duration) {
+              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+              return;
+            }
+
+            float flash_t = beat_phase / flash_duration;
+            float flash_intensity = flash_t < 0.1
+              ? flash_t / 0.1
+              : max(0.0, 1.0 - pow((flash_t - 0.1) / 0.9, 2.0));
+
+            float noise_val = random(uv * 10.0 + time);
+            float variation = 0.7 + noise_val * 0.3;
+            float final_intensity = flash_intensity * variation * intensity;
+
+            gl_FragColor = vec4(color1.rgb * final_intensity, 1.0);
+          }
+        `,
       },
     ];
     setShaders(defaultShaders);
