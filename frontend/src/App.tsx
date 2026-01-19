@@ -87,8 +87,8 @@ function App() {
               float chaser_pos = fract(time * speed * 0.5 + chaser_offset);
               if (reverse > 0.5) chaser_pos = 1.0 - chaser_pos;
 
+              // No wrap around for linear zigzag path
               float dist = abs(linear_pos - chaser_pos);
-              if (dist > 0.5) dist = 1.0 - dist;
 
               if (dist < chaserSize) {
                 float head_brightness = 1.0 - (dist / chaserSize);

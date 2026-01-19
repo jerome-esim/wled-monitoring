@@ -42,11 +42,8 @@ pub fn zigzag_chaser(uv: [f32; 2], time: f32, params: &ShaderParams) -> [f32; 3]
             chaser_pos = 1.0 - chaser_pos;
         }
 
-        // Distance from chaser head
-        let mut dist = (linear_pos - chaser_pos).abs();
-        if dist > 0.5 {
-            dist = 1.0 - dist; // Wrap around
-        }
+        // Distance from chaser head (no wrap around for linear zigzag)
+        let dist = (linear_pos - chaser_pos).abs();
 
         // Head brightness
         if dist < chaser_size {
