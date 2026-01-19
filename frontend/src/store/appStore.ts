@@ -112,7 +112,19 @@ export const useAppStore = create<AppState>((set) => ({
         opacity: 1.0,
         blendMode: state.layers.length === 0 ? 'normal' : 'add',
         order: maxOrder + 1,
-        params: {},
+        params: {
+          // Default parameters for all shaders
+          speed: 1.0,
+          intensity: 1.0,
+          color1: [1.0, 0.0, 0.0, 1.0],
+          color2: [0.0, 0.0, 1.0, 1.0],
+          trailLength: 0.2,
+          chaserSize: 0.05,
+          density: 1.0,
+          bpm: 120.0,
+          direction: [1.0, 0.0],
+          reverse: 0.0,
+        },
       };
       return { layers: [...state.layers, newLayer] };
     }),
