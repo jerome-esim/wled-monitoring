@@ -49,15 +49,8 @@ function App() {
   // Start render loop for Art-Net output
   useRenderLoop();
 
-  // Initialize on mount
+  // Initialize default shaders once on mount
   useEffect(() => {
-    // Load default layout if no strips configured
-    if (strips.length === 0) {
-      setStrips(DEFAULT_LAYOUT.strips);
-      updateConfig(DEFAULT_LAYOUT.strips);
-    }
-
-    // Initialize default shaders (Rust backend has these built-in)
     const defaultShaders: ShaderConfig[] = [
       {
         id: 'zigzag-chaser',
@@ -79,14 +72,24 @@ function App() {
       },
     ];
     setShaders(defaultShaders);
+  }, []); // Run only once on mount
 
-    // Subscribe to shader list updates
+  // Initialize strips on mount
+  useEffect(() => {
+    if (strips.length === 0) {
+      setStrips(DEFAULT_LAYOUT.strips);
+      updateConfig(DEFAULT_LAYOUT.strips);
+    }
+  }, []); // Run only once on mount
+
+  // Subscribe to shader list updates
+  useEffect(() => {
     const unsubscribe = on<ShaderConfig[]>('shaders:list', (shaders) => {
       setShaders(shaders);
     });
 
     return unsubscribe;
-  }, [on, setShaders, setStrips, strips.length, updateConfig]);
+  }, [on, setShaders]);
 
   // Sync layers to backend whenever they change
   useEffect(() => {
