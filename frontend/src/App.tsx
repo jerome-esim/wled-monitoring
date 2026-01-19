@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSocket } from './hooks/useSocket';
-import { useRenderLoop } from './hooks/useRenderLoop';
+// import { useRenderLoop } from './hooks/useRenderLoop'; // Disabled - Rust backend handles rendering
 import { useAppStore } from './store/appStore';
 // import { ShaderLibrary } from './components/ShaderLibrary/ShaderLibrary';
 // import { ShaderEditor } from './components/ShaderEditor/ShaderEditor';
@@ -43,11 +43,11 @@ const DEFAULT_LAYOUT: LayoutConfig = {
 };
 
 function App() {
-  const { connected, on, updateConfig, updateLayers } = useSocket();
-  const { setShaders, setStrips, strips, layers } = useAppStore();
+  const { connected, on, updateConfig, updateLayers, startPlayback, stopPlayback } = useSocket();
+  const { setShaders, setStrips, strips, layers, playbackState } = useAppStore();
 
-  // Start render loop for Art-Net output
-  useRenderLoop();
+  // NOTE: useRenderLoop() is disabled - Rust backend handles all rendering now
+  // useRenderLoop();
 
   // Initialize default shaders once on mount
   useEffect(() => {
@@ -91,13 +91,35 @@ function App() {
     return unsubscribe;
   }, [on, setShaders]);
 
+  // Store socket functions in refs to avoid re-triggering on every render
+  const updateLayersRef = useRef(updateLayers);
+  const startPlaybackRef = useRef(startPlayback);
+  const stopPlaybackRef = useRef(stopPlayback);
+
+  updateLayersRef.current = updateLayers;
+  startPlaybackRef.current = startPlayback;
+  stopPlaybackRef.current = stopPlayback;
+
   // Sync layers to backend whenever they change
   useEffect(() => {
     if (connected && layers.length >= 0) {
       console.log('📤 Sending layers to backend:', layers.length);
-      updateLayers(layers);
+      updateLayersRef.current(layers);
     }
-  }, [layers, connected, updateLayers]);
+  }, [layers, connected]);
+
+  // Sync playback state to backend
+  useEffect(() => {
+    if (connected) {
+      if (playbackState.isPlaying) {
+        console.log('▶️  Starting playback');
+        startPlaybackRef.current();
+      } else {
+        console.log('⏸️  Stopping playback');
+        stopPlaybackRef.current();
+      }
+    }
+  }, [playbackState.isPlaying, connected]);
 
   return (
     <div className="h-screen bg-gray-900 text-white flex flex-col">
