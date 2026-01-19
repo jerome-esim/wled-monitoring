@@ -144,6 +144,40 @@ pub fn lightning_flash(uv: [f32; 2], time: f32, params: &ShaderParams) -> [f32; 
     ]
 }
 
+/// Right to Left shader - Each strip lights up from right to left
+pub fn right_to_left(uv: [f32; 2], time: f32, params: &ShaderParams) -> [f32; 3] {
+    let speed = params.speed.unwrap_or(1.0);
+    let color1 = params.color1.unwrap_or([0.0, 1.0, 1.0, 1.0]); // Cyan par défaut
+    let color2 = params.color2.unwrap_or([1.0, 0.0, 1.0, 1.0]); // Magenta par défaut
+    let trail_length = params.trail_length.unwrap_or(0.2);
+
+    // Position qui se déplace de droite (1.0) vers gauche (0.0)
+    let wave_pos = (time * speed * 0.3).fract();
+
+    // uv[1] = position sur la LED (0.0 = LED 0, 1.0 = LED 249)
+    // On inverse pour aller de droite à gauche
+    let led_pos = 1.0 - uv[1];
+
+    // Distance de la vague
+    let dist = (led_pos - wave_pos).abs();
+
+    // Intensité basée sur la distance
+    let intensity = if dist < trail_length {
+        1.0 - (dist / trail_length)
+    } else {
+        0.0
+    };
+
+    // Mélange des couleurs basé sur la position
+    let color = mix_color(color1, color2, led_pos);
+
+    [
+        color[0] * intensity,
+        color[1] * intensity,
+        color[2] * intensity,
+    ]
+}
+
 // Helper functions
 
 fn mix_color(color1: [f32; 4], color2: [f32; 4], t: f32) -> [f32; 3] {

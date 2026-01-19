@@ -88,6 +88,7 @@ impl CpuShaderEngine {
                     "zigzag-chaser" => shaders::zigzag_chaser(uv, time, params),
                     "gradient-sweep" => shaders::gradient_sweep(uv, time, params),
                     "lightning-flash" => shaders::lightning_flash(uv, time, params),
+                    "right-to-left" => shaders::right_to_left(uv, time, params),
                     _ => [0.0, 0.0, 0.0], // Unknown shader = black
                 }
             })
