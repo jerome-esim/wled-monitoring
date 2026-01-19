@@ -1,24 +1,27 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct StripConfig {
     pub id: u32,
     pub name: String,
     pub universe: u16,
+    #[serde(rename = "startChannel")]
     pub start_channel: u16,
+    #[serde(rename = "ledCount")]
     pub led_count: u32,
+    #[serde(rename = "ipAddress")]
     pub ip_address: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ShaderLayer {
     pub id: String,
+    #[serde(rename = "shaderId")]
     pub shader_id: String,
     pub name: String,
     pub enabled: bool,
     pub opacity: f32,
+    #[serde(rename = "blendMode")]
     pub blend_mode: BlendMode,
     pub order: i32,
     pub params: ShaderParams,
@@ -34,7 +37,6 @@ pub enum BlendMode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ShaderParams {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color1: Option<[f32; 4]>,
@@ -46,9 +48,9 @@ pub struct ShaderParams {
     pub intensity: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub density: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "chaserSize")]
     pub chaser_size: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "trailLength")]
     pub trail_length: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reverse: Option<f32>,
