@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
 import type {
   StripConfig,
   ShaderConfig,
@@ -7,91 +6,200 @@ import type {
   ShaderUniforms,
 } from '@shared/types';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'ws://localhost:3001/ws';
+
+// Backend message types (matching Rust backend)
+interface UpdateLayersMessage {
+  type: 'updateLayers';
+  layers: any[];
+}
+
+interface UpdateStripsMessage {
+  type: 'updateStrips';
+  strips: StripConfig[];
+}
+
+interface UpdateGlobalParamsMessage {
+  type: 'updateGlobalParams';
+  params: any;
+}
+
+interface SetPlayingMessage {
+  type: 'setPlaying';
+  playing: boolean;
+}
+
+interface SetMasterBrightnessMessage {
+  type: 'setMasterBrightness';
+  brightness: number;
+}
+
+type ClientMessage =
+  | UpdateLayersMessage
+  | UpdateStripsMessage
+  | UpdateGlobalParamsMessage
+  | SetPlayingMessage
+  | SetMasterBrightnessMessage;
 
 export const useSocket = () => {
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [fps, setFps] = useState(0);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const eventHandlersRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
+
+  const connect = () => {
+    try {
+      const socket = new WebSocket(SOCKET_URL);
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        console.log('✅ Connected to WLED Rust backend');
+        setConnected(true);
+      };
+
+      socket.onclose = () => {
+        console.log('❌ Disconnected from backend');
+        setConnected(false);
+
+        // Auto-reconnect after 2 seconds
+        reconnectTimeoutRef.current = setTimeout(() => {
+          console.log('🔄 Attempting to reconnect...');
+          connect();
+        }, 2000);
+      };
+
+      socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+
+          // Handle FPS updates
+          if (message.type === 'fpsUpdate') {
+            setFps(message.fps);
+          }
+
+          // Trigger registered event handlers
+          const handlers = eventHandlersRef.current.get(message.type);
+          if (handlers) {
+            handlers.forEach(handler => handler(message));
+          }
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
+        }
+      };
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
+    }
+  };
 
   useEffect(() => {
-    // Create socket connection
-    const socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-    });
-
-    socketRef.current = socket;
-
-    // Connection events
-    socket.on('connect', () => {
-      console.log('Connected to backend');
-      setConnected(true);
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Disconnected from backend');
-      setConnected(false);
-    });
-
-    // Server events
-    socket.on('fps:update', (data: { fps: number }) => {
-      setFps(data.fps);
-    });
-
-    socket.on('artnet:error', (data: { message: string }) => {
-      console.error('Art-Net error:', data.message);
-    });
+    connect();
 
     return () => {
-      socket.disconnect();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      socketRef.current?.close();
     };
   }, []);
 
-  // Client methods
+  const sendMessage = (message: ClientMessage) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify(message));
+    } else {
+      console.warn('WebSocket not connected, message not sent:', message);
+    }
+  };
+
+  // Client methods adapted to new backend
   const updateConfig = (strips: StripConfig[]) => {
-    socketRef.current?.emit('config:update', strips);
+    sendMessage({
+      type: 'updateStrips',
+      strips,
+    });
   };
 
   const applyShader = (assignment: StripShaderAssignment) => {
-    socketRef.current?.emit('shader:apply', assignment);
+    // Note: The Rust backend uses layers, not direct assignments
+    // This would need to be adapted based on your layer structure
+    console.warn('applyShader needs to be adapted to layer-based system');
   };
 
   const updateParams = (params: Partial<ShaderUniforms>) => {
-    socketRef.current?.emit('params:update', params);
+    sendMessage({
+      type: 'updateGlobalParams',
+      params,
+    });
   };
 
   const startPlayback = () => {
-    socketRef.current?.emit('playback:start');
+    sendMessage({
+      type: 'setPlaying',
+      playing: true,
+    });
   };
 
   const stopPlayback = () => {
-    socketRef.current?.emit('playback:stop');
+    sendMessage({
+      type: 'setPlaying',
+      playing: false,
+    });
   };
 
   const updateBpm = (bpm: number) => {
-    socketRef.current?.emit('bpm:update', { bpm });
+    sendMessage({
+      type: 'updateGlobalParams',
+      params: { bpm },
+    });
   };
 
-  const createShader = (shader: ShaderConfig) => {
-    socketRef.current?.emit('shader:create', shader);
+  const updateLayers = (layers: any[]) => {
+    sendMessage({
+      type: 'updateLayers',
+      layers,
+    });
   };
 
-  const updateShader = (shader: ShaderConfig) => {
-    socketRef.current?.emit('shader:update', shader);
-  };
-
-  const deleteShader = (id: string) => {
-    socketRef.current?.emit('shader:delete', { id });
+  const setMasterBrightness = (brightness: number) => {
+    sendMessage({
+      type: 'setMasterBrightness',
+      brightness,
+    });
   };
 
   // Event subscription helper
   const on = <T,>(event: string, callback: (data: T) => void) => {
-    socketRef.current?.on(event, callback);
+    if (!eventHandlersRef.current.has(event)) {
+      eventHandlersRef.current.set(event, new Set());
+    }
+    eventHandlersRef.current.get(event)!.add(callback);
+
     return () => {
-      socketRef.current?.off(event, callback);
+      const handlers = eventHandlersRef.current.get(event);
+      if (handlers) {
+        handlers.delete(callback);
+        if (handlers.size === 0) {
+          eventHandlersRef.current.delete(event);
+        }
+      }
     };
+  };
+
+  // Deprecated methods (kept for compatibility)
+  const createShader = (shader: ShaderConfig) => {
+    console.warn('createShader is deprecated in the new CPU backend');
+  };
+
+  const updateShader = (shader: ShaderConfig) => {
+    console.warn('updateShader is deprecated in the new CPU backend');
+  };
+
+  const deleteShader = (id: string) => {
+    console.warn('deleteShader is deprecated in the new CPU backend');
   };
 
   return {
@@ -103,6 +211,8 @@ export const useSocket = () => {
     startPlayback,
     stopPlayback,
     updateBpm,
+    updateLayers,
+    setMasterBrightness,
     createShader,
     updateShader,
     deleteShader,
