@@ -78,9 +78,16 @@ function App() {
   useEffect(() => {
     if (strips.length === 0) {
       setStrips(DEFAULT_LAYOUT.strips);
-      updateConfig(DEFAULT_LAYOUT.strips);
     }
   }, []); // Run only once on mount
+
+  // Send strips to backend when connected
+  useEffect(() => {
+    if (connected && strips.length > 0) {
+      console.log('📤 Sending strips config to backend:', strips.length);
+      updateConfig(strips);
+    }
+  }, [connected, strips, updateConfig]);
 
   // Subscribe to shader list updates
   useEffect(() => {
