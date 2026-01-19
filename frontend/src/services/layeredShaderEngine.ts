@@ -208,6 +208,10 @@ export class LayeredShaderRenderer {
         direction: {
           value: new THREE.Vector2(...((uniforms as any).direction || [1.0, 0.0]))
         },
+        trailLength: { value: (uniforms as any).trailLength || 0.2 },
+        chaserSize: { value: (uniforms as any).chaserSize || 0.05 },
+        density: { value: (uniforms as any).density || 1.0 },
+        reverse: { value: (uniforms as any).reverse || 0.0 },
       };
 
       // Create material with user's fragment shader
@@ -248,6 +252,10 @@ export class LayeredShaderRenderer {
         direction: {
           value: new THREE.Vector2(...((uniforms as any).direction || [1.0, 0.0]))
         },
+        trailLength: { value: (uniforms as any).trailLength || 0.2 },
+        chaserSize: { value: (uniforms as any).chaserSize || 0.05 },
+        density: { value: (uniforms as any).density || 1.0 },
+        reverse: { value: (uniforms as any).reverse || 0.0 },
       };
 
       layerData.material.dispose();
@@ -306,6 +314,18 @@ export class LayeredShaderRenderer {
     }
     if (uniforms.color2) {
       material.uniforms.color2.value.set(...uniforms.color2);
+    }
+    if ((uniforms as any).trailLength !== undefined) {
+      material.uniforms.trailLength.value = (uniforms as any).trailLength;
+    }
+    if ((uniforms as any).chaserSize !== undefined) {
+      material.uniforms.chaserSize.value = (uniforms as any).chaserSize;
+    }
+    if ((uniforms as any).density !== undefined) {
+      material.uniforms.density.value = (uniforms as any).density;
+    }
+    if ((uniforms as any).reverse !== undefined) {
+      material.uniforms.reverse.value = (uniforms as any).reverse;
     }
   }
 
