@@ -5,6 +5,7 @@ import type {
   StripShaderAssignment,
   ShaderUniforms,
 } from '@shared/types';
+import { useAppStore } from '../store/appStore';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'ws://localhost:3001/ws';
 
@@ -47,6 +48,7 @@ export const useSocket = () => {
   const [fps, setFps] = useState(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const eventHandlersRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
+  const setMatrixData = useAppStore((state) => state.setMatrixData);
 
   const connect = () => {
     try {
@@ -80,6 +82,22 @@ export const useSocket = () => {
           // Handle FPS updates
           if (message.type === 'fpsUpdate') {
             setFps(message.fps);
+          }
+
+          // Handle frame updates from backend
+          if (message.type === 'frameUpdate') {
+            try {
+              // Decode base64 to Uint8Array
+              const base64Data = message.data;
+              const binaryString = atob(base64Data);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              setMatrixData(bytes);
+            } catch (err) {
+              console.error('Failed to decode frame data:', err);
+            }
           }
 
           // Trigger registered event handlers

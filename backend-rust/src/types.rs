@@ -94,11 +94,17 @@ pub enum ClientMessage {
 }
 
 // WebSocket messages to frontend
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum ServerMessage {
     #[serde(rename_all = "camelCase")]
     FpsUpdate { fps: u32 },
+    #[serde(rename_all = "camelCase")]
+    FrameUpdate {
+        data: String, // base64 encoded RGB data
+        width: u32,
+        height: u32,
+    },
     #[serde(rename_all = "camelCase")]
     Error { message: String },
 }

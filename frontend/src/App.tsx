@@ -46,10 +46,11 @@ function App() {
   const { connected, on, updateConfig, updateLayers, startPlayback, stopPlayback } = useSocket();
   const { setShaders, setStrips, strips, layers, playbackState } = useAppStore();
 
-  // Local render loop for preview canvas (Rust backend handles Art-Net)
-  useRenderLoop();
+  // DISABLED: Local render loop - Backend now streams frames directly via WebSocket
+  // useRenderLoop();
 
   // Initialize default shaders once on mount
+  // All shaders are now rendered on the Rust backend - no local WebGL needed!
   useEffect(() => {
     const defaultShaders: ShaderConfig[] = [
       {
@@ -57,162 +58,28 @@ function App() {
         name: 'Zigzag Chaser',
         code: '', // Built-in to Rust backend
         type: 'builtin',
-        fragmentShader: `
-          precision highp float;
-          uniform vec2 resolution;
-          uniform float time;
-          uniform vec4 color1;
-          uniform vec4 color2;
-          uniform float density;
-          uniform float chaserSize;
-          uniform float trailLength;
-          uniform float reverse;
-          uniform float speed;
-
-          void main() {
-            vec2 uv = gl_FragCoord.xy / resolution;
-            // Which LED column are we in? (0 to resolution.y)
-            float col_idx = floor(uv.y * resolution.y);
-            // Position within this column (across strips)
-            float strip_pos = mod(col_idx, 2.0) == 0.0 ? uv.x : 1.0 - uv.x;
-            // Linear position along zigzag path (0.0 - 1.0)
-            float linear_pos = (col_idx + strip_pos) / resolution.y;
-
-            vec3 finalColor = vec3(0.0);
-            float num_chasers = clamp(density, 1.0, 10.0);
-
-            for (float i = 0.0; i < 10.0; i++) {
-              if (i >= num_chasers) break;
-              float chaser_offset = i / num_chasers;
-              float chaser_pos = fract(time * speed * 0.5 + chaser_offset);
-              if (reverse > 0.5) chaser_pos = 1.0 - chaser_pos;
-
-              // No wrap around for linear zigzag path
-              float dist = abs(linear_pos - chaser_pos);
-
-              if (dist < chaserSize) {
-                float head_brightness = 1.0 - (dist / chaserSize);
-                float t = i / max(num_chasers, 1.0);
-                vec3 chaser_color = mix(color1.rgb, color2.rgb, t);
-                finalColor = max(finalColor, chaser_color * head_brightness);
-              } else if (dist < trailLength) {
-                float trail_brightness = 1.0 - (dist / trailLength);
-                trail_brightness = trail_brightness * trail_brightness;
-                float t = i / max(num_chasers, 1.0);
-                vec3 chaser_color = mix(color1.rgb, color2.rgb, t);
-                finalColor = max(finalColor, chaser_color * trail_brightness * 0.5);
-              }
-            }
-
-            gl_FragColor = vec4(finalColor, 1.0);
-          }
-        `,
+        fragmentShader: '', // No longer needed - backend streams frames
       },
       {
         id: 'gradient-sweep',
         name: 'Gradient Sweep',
         code: '', // Built-in to Rust backend
         type: 'builtin',
-        fragmentShader: `
-          precision highp float;
-          uniform vec2 resolution;
-          uniform float time;
-          uniform vec4 color1;
-          uniform vec4 color2;
-          uniform float speed;
-          uniform vec2 direction;
-          uniform float intensity;
-
-          void main() {
-            vec2 uv = gl_FragCoord.xy / resolution;
-            vec2 dir_norm = normalize(direction);
-            float projected = uv.x * dir_norm.x + uv.y * dir_norm.y;
-            float animated_pos = fract(projected + time * speed * 0.2);
-
-            vec3 color = mix(color1.rgb, color2.rgb, animated_pos);
-            gl_FragColor = vec4(color * intensity, 1.0);
-          }
-        `,
+        fragmentShader: '', // No longer needed - backend streams frames
       },
       {
         id: 'lightning-flash',
         name: 'Lightning Flash',
         code: '', // Built-in to Rust backend
         type: 'builtin',
-        fragmentShader: `
-          precision highp float;
-          uniform vec2 resolution;
-          uniform float time;
-          uniform vec4 color1;
-          uniform float bpm;
-          uniform float intensity;
-
-          float random(vec2 st) {
-            return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-          }
-
-          void main() {
-            vec2 uv = gl_FragCoord.xy / resolution;
-            float beat_duration = 60.0 / bpm;
-            float beat_phase = fract(time / beat_duration);
-            float flash_duration = 0.15;
-
-            if (beat_phase > flash_duration) {
-              gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-              return;
-            }
-
-            float flash_t = beat_phase / flash_duration;
-            float flash_intensity = flash_t < 0.1
-              ? flash_t / 0.1
-              : max(0.0, 1.0 - pow((flash_t - 0.1) / 0.9, 2.0));
-
-            float noise_val = random(uv * 10.0 + time);
-            float variation = 0.7 + noise_val * 0.3;
-            float final_intensity = flash_intensity * variation * intensity;
-
-            gl_FragColor = vec4(color1.rgb * final_intensity, 1.0);
-          }
-        `,
+        fragmentShader: '', // No longer needed - backend streams frames
       },
       {
         id: 'right-to-left',
         name: 'Right to Left',
         code: '', // Built-in to Rust backend
         type: 'builtin',
-        fragmentShader: `
-          precision highp float;
-          uniform vec2 resolution;
-          uniform float time;
-          uniform vec4 color1;
-          uniform vec4 color2;
-          uniform float speed;
-          uniform float trailLength;
-
-          void main() {
-            vec2 uv = gl_FragCoord.xy / resolution;
-
-            // Position qui se déplace de droite (1.0) vers gauche (0.0)
-            float wave_pos = fract(time * speed * 0.3);
-
-            // Position LED inversée (droite à gauche)
-            float led_pos = 1.0 - uv.y;
-
-            // Distance de la vague
-            float dist = abs(led_pos - wave_pos);
-
-            // Intensité basée sur la distance
-            float intensity = 0.0;
-            if (dist < trailLength) {
-              intensity = 1.0 - (dist / trailLength);
-            }
-
-            // Mélange des couleurs basé sur la position
-            vec3 color = mix(color1.rgb, color2.rgb, led_pos);
-
-            gl_FragColor = vec4(color * intensity, 1.0);
-          }
-        `,
+        fragmentShader: '', // No longer needed - backend streams frames
       },
     ];
     setShaders(defaultShaders);
