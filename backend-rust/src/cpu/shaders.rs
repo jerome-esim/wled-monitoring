@@ -15,17 +15,22 @@ pub fn zigzag_chaser(uv: [f32; 2], time: f32, params: &ShaderParams) -> [f32; 3]
     // Convert UV to zigzag position (0.0 - 1.0)
     // Vertical zigzag: down first column, up second column, down third, etc.
     // Each "column" is a LED position (uv[1]), movement is across strips (uv[0])
-    let col_count = 250.0; // Number of LEDs per strip
-    let col_idx = (uv[1] * col_count).floor() as i32;
+    let strip_count = 13.0;
+    let led_count = 250.0;
 
-    let zigzag_pos = if col_idx % 2 == 0 {
-        uv[0]  // Even column: go down strips (strip 0 -> strip N)
+    // Which LED column are we in? (0 to 249)
+    let col_idx = (uv[1] * led_count).floor() as i32;
+
+    // Position within this column (across strips)
+    let strip_pos = if col_idx % 2 == 0 {
+        uv[0]  // Even column: go down strips (0.0 -> 1.0)
     } else {
-        1.0 - uv[0]  // Odd column: go up strips (strip N -> strip 0)
+        1.0 - uv[0]  // Odd column: go up strips (1.0 -> 0.0)
     };
 
-    // Linear position along the entire zigzag path
-    let linear_pos = uv[1] + zigzag_pos;
+    // Linear position along the entire zigzag path (0.0 - 1.0)
+    // Each column contributes 1/led_count to the total
+    let linear_pos = (col_idx as f32 + strip_pos) / led_count;
 
     let mut final_color = [0.0, 0.0, 0.0];
 

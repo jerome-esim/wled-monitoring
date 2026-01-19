@@ -71,10 +71,12 @@ function App() {
 
           void main() {
             vec2 uv = gl_FragCoord.xy / resolution;
-            // Each "column" is a LED position (uv.y), movement is across strips (uv.x)
+            // Which LED column are we in? (0 to resolution.y)
             float col_idx = floor(uv.y * resolution.y);
-            float zigzag_pos = mod(col_idx, 2.0) == 0.0 ? uv.x : 1.0 - uv.x;
-            float linear_pos = uv.y + zigzag_pos;
+            // Position within this column (across strips)
+            float strip_pos = mod(col_idx, 2.0) == 0.0 ? uv.x : 1.0 - uv.x;
+            // Linear position along zigzag path (0.0 - 1.0)
+            float linear_pos = (col_idx + strip_pos) / resolution.y;
 
             vec3 finalColor = vec3(0.0);
             float num_chasers = clamp(density, 1.0, 10.0);
