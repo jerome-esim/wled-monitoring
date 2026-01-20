@@ -5,10 +5,10 @@ mod websocket;
 
 use artnet::ArtNetSender;
 use cpu::CpuShaderEngine;
-use tokio::sync::mpsc;
+use tokio::sync::{broadcast, mpsc};
 use tokio::time::{interval, Duration, Instant};
 use tracing::{error, info};
-use types::{ClientMessage, ShaderLayer, ShaderParams, StripConfig};
+use types::{ClientMessage, ServerMessage, ShaderLayer, ShaderParams, StripConfig};
 use websocket::WebSocketServer;
 
 const TARGET_FPS: u32 = 40;
@@ -58,8 +58,11 @@ async fn main() -> anyhow::Result<()> {
     // Create command channel for WebSocket → Engine communication
     let (command_tx, mut command_rx) = mpsc::unbounded_channel();
 
+    // Create broadcast channel for Engine → WebSocket communication (frames, FPS, etc.)
+    let (broadcast_tx, _) = broadcast::channel::<ServerMessage>(100);
+
     // Start WebSocket server
-    let ws_server = WebSocketServer::new(command_tx);
+    let ws_server = WebSocketServer::new(command_tx, broadcast_tx.clone());
     let app = ws_server.create_router();
 
     info!("Starting WebSocket server on 0.0.0.0:3001...");
@@ -150,11 +153,26 @@ async fn main() -> anyhow::Result<()> {
             error!("Art-Net send error: {}", e);
         }
 
-        // FPS reporting
+        // Send frame to WebSocket clients for preview (every frame)
+        let frame_base64 = base64::Engine::encode(
+            &base64::engine::general_purpose::STANDARD,
+            &rgb_matrix,
+        );
+        let _ = broadcast_tx.send(ServerMessage::FrameUpdate {
+            data: frame_base64,
+            width: 13,
+            height: 250,
+        });
+
+        // FPS reporting (every second)
         frame_count += 1;
         if last_fps_report.elapsed().as_secs() >= 1 {
-            let fps = frame_count;
+            let fps = frame_count as u32;
             info!("📊 FPS: {} | Layers: {} | Strips: {}", fps, state.layers.len(), state.strips.len());
+
+            // Send FPS to WebSocket clients
+            let _ = broadcast_tx.send(ServerMessage::FpsUpdate { fps });
+
             frame_count = 0;
             last_fps_report = Instant::now();
         }
