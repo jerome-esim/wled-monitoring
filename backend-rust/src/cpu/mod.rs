@@ -138,6 +138,9 @@ impl CpuShaderEngine {
             reverse: layer.reverse.or(global.reverse),
             direction: layer.direction.or(global.direction),
             bpm: layer.bpm.or(global.bpm),
+            warmup_duration: layer.warmup_duration.or(global.warmup_duration),
+            on_duration: layer.on_duration.or(global.on_duration),
+            off_duration: layer.off_duration.or(global.off_duration),
         }
     }
 

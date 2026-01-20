@@ -212,6 +212,9 @@ export class LayeredShaderRenderer {
         chaserSize: { value: (uniforms as any).chaserSize || 0.05 },
         density: { value: (uniforms as any).density || 1.0 },
         reverse: { value: (uniforms as any).reverse || 0.0 },
+        warmupDuration: { value: (uniforms as any).warmupDuration || 0.5 },
+        onDuration: { value: (uniforms as any).onDuration || 2.0 },
+        offDuration: { value: (uniforms as any).offDuration || 0.3 },
       };
 
       // Create material with user's fragment shader
@@ -256,6 +259,9 @@ export class LayeredShaderRenderer {
         chaserSize: { value: (uniforms as any).chaserSize || 0.05 },
         density: { value: (uniforms as any).density || 1.0 },
         reverse: { value: (uniforms as any).reverse || 0.0 },
+        warmupDuration: { value: (uniforms as any).warmupDuration || 0.5 },
+        onDuration: { value: (uniforms as any).onDuration || 2.0 },
+        offDuration: { value: (uniforms as any).offDuration || 0.3 },
       };
 
       layerData.material.dispose();
@@ -326,6 +332,15 @@ export class LayeredShaderRenderer {
     }
     if ((uniforms as any).reverse !== undefined) {
       material.uniforms.reverse.value = (uniforms as any).reverse;
+    }
+    if ((uniforms as any).warmupDuration !== undefined) {
+      material.uniforms.warmupDuration.value = (uniforms as any).warmupDuration;
+    }
+    if ((uniforms as any).onDuration !== undefined) {
+      material.uniforms.onDuration.value = (uniforms as any).onDuration;
+    }
+    if ((uniforms as any).offDuration !== undefined) {
+      material.uniforms.offDuration.value = (uniforms as any).offDuration;
     }
   }
 

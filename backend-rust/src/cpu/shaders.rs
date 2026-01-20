@@ -186,10 +186,10 @@ pub fn neon_warmup(uv: [f32; 2], time: f32, params: &ShaderParams) -> [f32; 3] {
     let background_color = params.color2.unwrap_or([0.0, 0.0, 0.0, 1.0]); // Black
     let num_active = params.density.unwrap_or(3.0).clamp(1.0, 12.0);
 
-    // Duration parameters
-    let warmup_duration = 0.5;
-    let on_duration = 2.0;
-    let off_duration = 0.3;
+    // Duration parameters (configurable)
+    let warmup_duration = params.warmup_duration.unwrap_or(0.5).clamp(0.1, 3.0);
+    let on_duration = params.on_duration.unwrap_or(2.0).clamp(0.5, 10.0);
+    let off_duration = params.off_duration.unwrap_or(0.3).clamp(0.1, 2.0);
 
     let current_col = (uv[0] * width).floor();
 
