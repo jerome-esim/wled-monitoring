@@ -346,8 +346,36 @@ export const LayerManager: React.FC = () => {
                             {layer.params?.reverse ? 'ON' : 'OFF'}
                           </button>
                         </div>
+                      </div>
+                    )}
 
-                        {/* Warmup Duration (Neon shader) */}
+                    {/* Neon Warmup Parameters */}
+                    {shader?.id === 'neon-warmup' && (
+                      <div className="space-y-2">
+                        <label className="block text-xs text-gray-300 mb-2">
+                          Neon Parameters
+                        </label>
+
+                        {/* Density (num active) */}
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">
+                            Active Neons: {layer.params?.density?.toFixed(0) || '3'}
+                          </label>
+                          <input
+                            type="range"
+                            min="1"
+                            max="12"
+                            step="1"
+                            value={layer.params?.density || 3}
+                            onChange={(e) => updateLayer(layer.id, {
+                              params: { ...layer.params, density: Number(e.target.value) }
+                            })}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full"
+                          />
+                        </div>
+
+                        {/* Warmup Duration */}
                         <div>
                           <label className="block text-xs text-gray-400 mb-1">
                             Warmup Duration: {layer.params?.warmupDuration?.toFixed(2) || '0.50'}s
@@ -366,7 +394,7 @@ export const LayerManager: React.FC = () => {
                           />
                         </div>
 
-                        {/* On Duration (Neon shader) */}
+                        {/* On Duration */}
                         <div>
                           <label className="block text-xs text-gray-400 mb-1">
                             On Duration: {layer.params?.onDuration?.toFixed(2) || '2.00'}s
@@ -385,7 +413,7 @@ export const LayerManager: React.FC = () => {
                           />
                         </div>
 
-                        {/* Off Duration (Neon shader) */}
+                        {/* Off Duration */}
                         <div>
                           <label className="block text-xs text-gray-400 mb-1">
                             Off Duration: {layer.params?.offDuration?.toFixed(2) || '0.30'}s
