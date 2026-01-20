@@ -58,6 +58,12 @@ pub struct ShaderParams {
     pub direction: Option<[f32; 2]>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bpm: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "warmupDuration")]
+    pub warmup_duration: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "onDuration")]
+    pub on_duration: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "offDuration")]
+    pub off_duration: Option<f32>,
 }
 
 impl Default for ShaderParams {
@@ -73,6 +79,9 @@ impl Default for ShaderParams {
             reverse: Some(0.0),
             direction: Some([1.0, 0.0]),
             bpm: Some(120.0),
+            warmup_duration: Some(0.5),
+            on_duration: Some(2.0),
+            off_duration: Some(0.3),
         }
     }
 }

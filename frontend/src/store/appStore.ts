@@ -124,6 +124,9 @@ export const useAppStore = create<AppState>((set) => ({
           bpm: 120.0,
           direction: [1.0, 0.0],
           reverse: 0.0,
+          warmupDuration: 0.5,
+          onDuration: 2.0,
+          offDuration: 0.3,
         },
       };
       return { layers: [...state.layers, newLayer] };
