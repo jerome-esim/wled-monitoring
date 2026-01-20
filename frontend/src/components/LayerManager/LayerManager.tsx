@@ -433,6 +433,94 @@ export const LayerManager: React.FC = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Continuous Zigzag Chaser Parameters */}
+                    {shader?.id === 'continuous-zigzag-chaser' && (
+                      <div className="space-y-2">
+                        <label className="block text-xs text-gray-300 mb-2">
+                          Chaser Parameters
+                        </label>
+
+                        {/* Density */}
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">
+                            Density: {layer.params?.density?.toFixed(1) || '1.0'}
+                          </label>
+                          <input
+                            type="range"
+                            min="1"
+                            max="10"
+                            step="1"
+                            value={layer.params?.density || 1}
+                            onChange={(e) => updateLayer(layer.id, {
+                              params: { ...layer.params, density: Number(e.target.value) }
+                            })}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full"
+                          />
+                        </div>
+
+                        {/* Chaser Size */}
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">
+                            Head Size: {layer.params?.chaserSize?.toFixed(2) || '0.05'}
+                          </label>
+                          <input
+                            type="range"
+                            min="0.01"
+                            max="0.2"
+                            step="0.01"
+                            value={layer.params?.chaserSize || 0.05}
+                            onChange={(e) => updateLayer(layer.id, {
+                              params: { ...layer.params, chaserSize: Number(e.target.value) }
+                            })}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full"
+                          />
+                        </div>
+
+                        {/* Trail Length */}
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">
+                            Trail Length: {layer.params?.trailLength?.toFixed(2) || '0.10'}
+                          </label>
+                          <input
+                            type="range"
+                            min="0"
+                            max="0.5"
+                            step="0.01"
+                            value={layer.params?.trailLength || 0.1}
+                            onChange={(e) => updateLayer(layer.id, {
+                              params: { ...layer.params, trailLength: Number(e.target.value) }
+                            })}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full"
+                          />
+                        </div>
+
+                        {/* Reverse */}
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs text-gray-400">
+                            Reverse Direction
+                          </label>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateLayer(layer.id, {
+                                params: { ...layer.params, reverse: layer.params?.reverse ? 0 : 1 }
+                              });
+                            }}
+                            className={`px-3 py-1 rounded text-xs transition-colors ${
+                              layer.params?.reverse
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
+                            }`}
+                          >
+                            {layer.params?.reverse ? 'ON' : 'OFF'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
