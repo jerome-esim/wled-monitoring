@@ -178,6 +178,77 @@ pub fn right_to_left(uv: [f32; 2], time: f32, params: &ShaderParams) -> [f32; 3]
     ]
 }
 
+/// Neon Warmup shader - Neons that heat up with flickering effect
+pub fn neon_warmup(uv: [f32; 2], time: f32, params: &ShaderParams) -> [f32; 3] {
+    let width = 13.0; // Number of strips
+    let speed = params.speed.unwrap_or(0.5);
+    let neon_color = params.color1.unwrap_or([0.0, 0.8, 1.0, 1.0]); // Cyan by default
+    let background_color = params.color2.unwrap_or([0.0, 0.0, 0.0, 1.0]); // Black
+    let num_active = params.density.unwrap_or(3.0).clamp(1.0, 12.0);
+
+    // Duration parameters
+    let warmup_duration = 0.5;
+    let on_duration = 2.0;
+    let off_duration = 0.3;
+
+    let current_col = (uv[0] * width).floor();
+
+    let mut max_intensity: f32 = 0.0;
+
+    // Total cycle duration
+    let total_duration = warmup_duration + on_duration + off_duration;
+
+    // For each active neon
+    let num_neons = num_active as i32;
+
+    for i in 0..num_neons {
+        let fi = i as f32;
+
+        // Time for this neon (staggered)
+        let t = time * speed + fi * total_duration * 0.5;
+        let cycle = (t / total_duration).floor();
+        let time_in_cycle = t % total_duration;
+
+        // Active column for this cycle (random based on cycle number)
+        let active_col = (simple_random(cycle + fi * 100.0) * width).floor();
+
+        if (current_col - active_col).abs() < 0.5 {
+            let intensity = if time_in_cycle < warmup_duration {
+                // Warmup phase - flickering
+                let warmup_progress = time_in_cycle / warmup_duration;
+                let flicker = if simple_random((time * 30.0 + fi).floor()) > 0.5 {
+                    1.0
+                } else {
+                    0.0
+                };
+                warmup_progress * flicker
+
+            } else if time_in_cycle < (warmup_duration + on_duration) {
+                // ON phase - stable
+                1.0
+
+            } else {
+                // OFF phase - fade out
+                let off_progress = (time_in_cycle - warmup_duration - on_duration) / off_duration;
+                1.0 - off_progress
+            };
+
+            max_intensity = max_intensity.max(intensity);
+        }
+    }
+
+    if max_intensity > 0.0 {
+        // Mix background and neon color
+        [
+            background_color[0] * (1.0 - max_intensity) + neon_color[0] * max_intensity,
+            background_color[1] * (1.0 - max_intensity) + neon_color[1] * max_intensity,
+            background_color[2] * (1.0 - max_intensity) + neon_color[2] * max_intensity,
+        ]
+    } else {
+        [background_color[0], background_color[1], background_color[2]]
+    }
+}
+
 // Helper functions
 
 fn mix_color(color1: [f32; 4], color2: [f32; 4], t: f32) -> [f32; 3] {
@@ -194,4 +265,9 @@ fn simple_noise(x: f32, y: f32) -> f32 {
     let x = x.sin() * 43758.5453;
     let y = y.cos() * 12345.6789;
     ((x + y).sin() * 0.5 + 0.5).fract()
+}
+
+// Simple random function (single parameter)
+fn simple_random(x: f32) -> f32 {
+    (x.sin() * 43758.5453).fract()
 }

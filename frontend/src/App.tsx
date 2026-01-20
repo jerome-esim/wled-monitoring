@@ -81,6 +81,13 @@ function App() {
         type: 'builtin',
         fragmentShader: '', // No longer needed - backend streams frames
       },
+      {
+        id: 'neon-warmup',
+        name: 'Neon Warmup',
+        code: '', // Built-in to Rust backend
+        type: 'builtin',
+        fragmentShader: '', // No longer needed - backend streams frames
+      },
     ];
     setShaders(defaultShaders);
   }, []); // Run only once on mount
