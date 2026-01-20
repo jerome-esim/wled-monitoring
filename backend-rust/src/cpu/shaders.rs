@@ -71,6 +71,87 @@ pub fn zigzag_chaser(uv: [f32; 2], time: f32, params: &ShaderParams) -> [f32; 3]
     final_color
 }
 
+/// Continuous Zigzag Chaser - True serpentine path through all columns
+pub fn continuous_zigzag_chaser(uv: [f32; 2], time: f32, params: &ShaderParams) -> [f32; 3] {
+    let width = 13.0; // Number of strips
+    let height = 250.0; // LEDs per strip
+    let speed = params.speed.unwrap_or(1.0);
+    let density = params.density.unwrap_or(1.0).clamp(1.0, 10.0);
+    let chaser_color = params.color1.unwrap_or([1.0, 0.5, 0.0, 1.0]); // Orange default
+    let chaser_size = params.chaser_size.unwrap_or(0.05);
+    let trail_length = params.trail_length.unwrap_or(0.1);
+    let reverse = params.reverse.unwrap_or(0.0);
+
+    let current_col = (uv[0] * width).floor();
+    let num_chasers = density as i32;
+    let total_cells = width * height;
+
+    let chaser_size_cells = chaser_size * height;
+    let trail_length_cells = trail_length * height;
+    let total_length = chaser_size_cells + trail_length_cells;
+
+    let mut color = [0.0, 0.0, 0.0];
+
+    for c in 0..num_chasers {
+        let offset = (c as f32 / density) * total_cells;
+        let animated_pos = time * speed * 50.0;
+        let mut global_pos = (animated_pos + offset) % total_cells;
+
+        if reverse > 0.5 {
+            global_pos = total_cells - global_pos;
+        }
+
+        // Check pixels in the chaser (head + trail)
+        for i in 0..(total_length * 1.5) as i32 {
+            let pixel_global_pos = (global_pos - (i as f32 / height) * height).rem_euclid(total_cells);
+
+            // Which column for this pixel
+            let pixel_column = (pixel_global_pos / height).floor();
+            let pos_in_column = pixel_global_pos % height;
+
+            // Only if we're on the correct column
+            if (pixel_column - current_col).abs() < 0.5 {
+                // Direction of this column
+                let column_goes_down = (pixel_column as i32 % 2) == 0;
+
+                // Y position of this pixel
+                let pixel_y = if column_goes_down {
+                    (height - pos_in_column - 1.0) / height
+                } else {
+                    pos_in_column / height
+                };
+
+                // Distance to this pixel
+                let dist_y = (uv[1] - pixel_y).abs();
+                let dist_cells = dist_y * height;
+
+                // Calculate intensity
+                if dist_cells < 1.0 {
+                    let intensity = if (i as f32) < chaser_size_cells {
+                        // Head
+                        1.0
+                    } else {
+                        // Trail
+                        let trail_pos = i as f32 - chaser_size_cells;
+                        (1.0 - (trail_pos / trail_length_cells)) * 0.5
+                    };
+
+                    color[0] += chaser_color[0] * intensity;
+                    color[1] += chaser_color[1] * intensity;
+                    color[2] += chaser_color[2] * intensity;
+                }
+            }
+        }
+    }
+
+    // Clamp to [0, 1]
+    [
+        color[0].min(1.0),
+        color[1].min(1.0),
+        color[2].min(1.0),
+    ]
+}
+
 /// Gradient Sweep shader - directional color gradient
 pub fn gradient_sweep(uv: [f32; 2], time: f32, params: &ShaderParams) -> [f32; 3] {
     let speed = params.speed.unwrap_or(1.0);

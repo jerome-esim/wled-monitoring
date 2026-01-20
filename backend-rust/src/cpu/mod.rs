@@ -86,6 +86,7 @@ impl CpuShaderEngine {
                 // Call appropriate shader
                 match layer.shader_id.as_str() {
                     "zigzag-chaser" => shaders::zigzag_chaser(uv, time, params),
+                    "continuous-zigzag-chaser" => shaders::continuous_zigzag_chaser(uv, time, params),
                     "gradient-sweep" => shaders::gradient_sweep(uv, time, params),
                     "lightning-flash" => shaders::lightning_flash(uv, time, params),
                     "right-to-left" => shaders::right_to_left(uv, time, params),
