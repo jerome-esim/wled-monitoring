@@ -346,6 +346,63 @@ export const LayerManager: React.FC = () => {
                             {layer.params?.reverse ? 'ON' : 'OFF'}
                           </button>
                         </div>
+
+                        {/* Warmup Duration (Neon shader) */}
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">
+                            Warmup Duration: {layer.params?.warmupDuration?.toFixed(2) || '0.50'}s
+                          </label>
+                          <input
+                            type="range"
+                            min="0.1"
+                            max="3.0"
+                            step="0.1"
+                            value={layer.params?.warmupDuration || 0.5}
+                            onChange={(e) => updateLayer(layer.id, {
+                              params: { ...layer.params, warmupDuration: Number(e.target.value) }
+                            })}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full"
+                          />
+                        </div>
+
+                        {/* On Duration (Neon shader) */}
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">
+                            On Duration: {layer.params?.onDuration?.toFixed(2) || '2.00'}s
+                          </label>
+                          <input
+                            type="range"
+                            min="0.5"
+                            max="10.0"
+                            step="0.1"
+                            value={layer.params?.onDuration || 2.0}
+                            onChange={(e) => updateLayer(layer.id, {
+                              params: { ...layer.params, onDuration: Number(e.target.value) }
+                            })}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full"
+                          />
+                        </div>
+
+                        {/* Off Duration (Neon shader) */}
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">
+                            Off Duration: {layer.params?.offDuration?.toFixed(2) || '0.30'}s
+                          </label>
+                          <input
+                            type="range"
+                            min="0.1"
+                            max="2.0"
+                            step="0.1"
+                            value={layer.params?.offDuration || 0.3}
+                            onChange={(e) => updateLayer(layer.id, {
+                              params: { ...layer.params, offDuration: Number(e.target.value) }
+                            })}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
