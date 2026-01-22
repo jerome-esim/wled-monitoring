@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSocket } from './hooks/useSocket';
 import { useRenderLoop } from './hooks/useRenderLoop'; // For local preview only
 import { useAppStore } from './store/appStore';
-// import { ShaderLibrary } from './components/ShaderLibrary/ShaderLibrary';
-// import { ShaderEditor } from './components/ShaderEditor/ShaderEditor';
+import { ShaderLibrary } from './components/ShaderLibrary/ShaderLibrary';
+import { ShaderParameters } from './components/ShaderParameters/ShaderParameters';
 import { StripCanvas } from './components/Canvas/StripCanvas';
 import { Controls } from './components/Controls/Controls';
 import { LayerManager } from './components/LayerManager/LayerManager';
@@ -44,7 +44,8 @@ const DEFAULT_LAYOUT: LayoutConfig = {
 
 function App() {
   const { connected, on, updateConfig, updateLayers, startPlayback, stopPlayback } = useSocket();
-  const { setShaders, setStrips, strips, layers, playbackState } = useAppStore();
+  const { setShaders, setStrips, strips, layers, playbackState, shaders, selectedShaderId } = useAppStore();
+  const [leftTab, setLeftTab] = useState<'layers' | 'shaders'>('layers');
 
   // DISABLED: Local render loop - Backend now streams frames directly via WebSocket
   // useRenderLoop();
@@ -160,45 +161,83 @@ function App() {
     }
   }, [playbackState.isPlaying, connected]);
 
+  // Find selected shader for parameters display
+  const selectedShader = selectedShaderId ? shaders.find(s => s.id === selectedShaderId) : null;
+
   return (
-    <div className="h-screen bg-gray-900 text-white flex flex-col">
+    <div className="h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 text-white flex flex-col">
       {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
+      <header className="bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700/50 px-6 py-4 flex items-center justify-between shadow-xl backdrop-blur-sm">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">LED Shader Controller</h1>
-          <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+            LED Shader Controller
+          </h1>
+          <div className="flex items-center gap-2 px-3 py-1 bg-gray-700/50 rounded-full border border-gray-600/50">
             <div
-              className={`w-2 h-2 rounded-full ${
-                connected ? 'bg-green-500' : 'bg-red-500'
+              className={`w-2 h-2 rounded-full shadow-lg ${
+                connected ? 'bg-green-500 shadow-green-500/50 animate-pulse' : 'bg-red-500 shadow-red-500/50'
               }`}
             />
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-gray-300 font-medium">
               {connected ? 'Connected' : 'Disconnected'}
             </span>
           </div>
         </div>
-        <div className="text-sm text-gray-400">
-          {strips.length} strips configured
+        <div className="text-sm text-gray-400 bg-gray-700/30 px-4 py-2 rounded-lg border border-gray-600/30">
+          <span className="font-semibold text-blue-400">{strips.length}</span> strips configured
         </div>
       </header>
 
       {/* Main Layout - 3 Columns */}
       <div className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
-        {/* Left Column - Layers Panel */}
-        <div className="col-span-3 overflow-y-auto">
-          <LayerManager />
+        {/* Left Column - Tabs (Layers / Shaders) */}
+        <div className="col-span-3 flex flex-col gap-3 overflow-hidden">
+          {/* Tab Buttons */}
+          <div className="flex gap-2 bg-gray-800/50 p-1 rounded-lg border border-gray-700/50">
+            <button
+              onClick={() => setLeftTab('layers')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all duration-200 ${
+                leftTab === 'layers'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              Layers ({layers.length})
+            </button>
+            <button
+              onClick={() => setLeftTab('shaders')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-semibold transition-all duration-200 ${
+                leftTab === 'shaders'
+                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+              }`}
+            >
+              Shaders ({shaders.length})
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          <div className="flex-1 overflow-y-auto bg-gray-800/30 rounded-xl p-4 border border-gray-700/50 backdrop-blur-sm">
+            {leftTab === 'layers' ? <LayerManager /> : <ShaderLibrary />}
+          </div>
         </div>
 
         {/* Center Column - Live Preview */}
         <div className="col-span-6 flex flex-col gap-4 overflow-hidden">
-          <div className="h-full">
+          <div className="h-full bg-gray-800/30 rounded-xl overflow-hidden border border-gray-700/50 shadow-2xl backdrop-blur-sm">
             <StripCanvas />
           </div>
         </div>
 
-        {/* Right Column - Controls */}
+        {/* Right Column - Controls or Shader Parameters */}
         <div className="col-span-3 overflow-y-auto">
-          <Controls />
+          {selectedShader && leftTab === 'shaders' ? (
+            <ShaderParameters shader={selectedShader} />
+          ) : (
+            <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/50 backdrop-blur-sm">
+              <Controls />
+            </div>
+          )}
         </div>
       </div>
     </div>

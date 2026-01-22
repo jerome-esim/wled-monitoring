@@ -4,18 +4,11 @@ import { useSocket } from '../../hooks/useSocket';
 import type { ShaderConfig } from '@shared/types';
 
 export const ShaderLibrary: React.FC = () => {
-  const { shaders, layers, addLayer, setActiveShaderId, selectedShaderId, setSelectedShaderId } = useAppStore();
+  const { shaders, layers, selectedShaderId, setSelectedShaderId } = useAppStore();
   const { createShader, deleteShader } = useSocket();
 
   const handleShaderClick = (shaderId: string) => {
-    // Add shader as a new layer
-    const shader = shaders.find(s => s.id === shaderId);
-    if (shader) {
-      addLayer(shaderId, `${shader.name} Layer`);
-    }
-    // Also set as active shader (legacy mode fallback)
-    setActiveShaderId(shaderId);
-    // Select for editing
+    // Just select the shader to view its parameters
     setSelectedShaderId(shaderId);
   };
 
@@ -63,26 +56,16 @@ void main() {
   const categories = Array.from(new Set(shaders.map((s) => s.category)));
 
   return (
-    <div className="h-full flex flex-col bg-gray-800 rounded-lg overflow-hidden">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Shaders</h2>
-        <button
-          onClick={handleCreateNew}
-          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
-        >
-          + New
-        </button>
-      </div>
-
+    <div className="h-full flex flex-col">
       {/* Shader list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pr-2">
         {categories.map((category) => (
           <div key={category} className="mb-4">
-            <div className="px-4 py-2 bg-gray-900 text-gray-400 text-sm font-medium sticky top-0">
+            <div className="px-3 py-2 bg-gradient-to-r from-gray-700/50 to-gray-800/50 backdrop-blur-sm text-gray-300 text-xs font-semibold uppercase tracking-wide sticky top-0 rounded-lg mb-2 flex items-center gap-2 border border-gray-600/30">
+              <span className="w-1 h-3 bg-gradient-to-b from-blue-500 to-purple-500 rounded"></span>
               {category}
             </div>
-            <div className="space-y-1 px-2">
+            <div className="space-y-2 px-1">
               {shaders
                 .filter((s) => s.category === category)
                 .map((shader) => {
@@ -93,24 +76,28 @@ void main() {
                     <div
                       key={shader.id}
                       onClick={() => handleShaderClick(shader.id)}
-                      className={`p-3 rounded cursor-pointer transition-colors group flex items-center justify-between ${
+                      className={`p-3 rounded-lg cursor-pointer transition-all duration-200 group flex items-center justify-between border ${
                         isSelected
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/50 border-blue-400 scale-105'
                           : isInLayers
-                          ? 'bg-green-700 text-white'
-                          : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                          ? 'bg-gradient-to-r from-green-700/50 to-green-600/50 text-white border-green-500/30 hover:border-green-500/60'
+                          : 'bg-gray-700/50 hover:bg-gray-600/70 text-gray-200 border-gray-600/30 hover:border-gray-500'
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        {isInLayers && <span className="text-xs">📋</span>}
-                        <span className="font-medium">{shader.name}</span>
+                        {isInLayers && (
+                          <div className="w-2 h-2 bg-green-400 rounded-full shadow-lg shadow-green-500/50 animate-pulse"></div>
+                        )}
+                        <span className="font-medium text-sm">{shader.name}</span>
                       </div>
-                      <button
-                        onClick={(e) => handleDelete(shader.id, e)}
-                        className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity"
-                      >
-                        ×
-                      </button>
+                      {shader.type === 'custom' && (
+                        <button
+                          onClick={(e) => handleDelete(shader.id, e)}
+                          className="opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center bg-red-500/20 hover:bg-red-500/40 text-red-300 hover:text-red-100 rounded transition-all text-lg border border-red-500/30"
+                        >
+                          ×
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -119,8 +106,10 @@ void main() {
         ))}
 
         {shaders.length === 0 && (
-          <div className="p-4 text-center text-gray-400">
-            No shaders yet. Create one to get started!
+          <div className="p-6 text-center">
+            <div className="text-gray-500 mb-2 text-4xl">🎨</div>
+            <p className="text-gray-400 text-sm">No shaders yet.</p>
+            <p className="text-gray-500 text-xs mt-1">Create one to get started!</p>
           </div>
         )}
       </div>

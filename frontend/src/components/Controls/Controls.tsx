@@ -68,17 +68,20 @@ export const Controls: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4 space-y-4">
-      <h2 className="text-lg font-semibold text-white">Controls</h2>
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+        <span className="w-1 h-5 bg-gradient-to-b from-green-500 to-blue-500 rounded"></span>
+        Global Controls
+      </h2>
 
       {/* Play/Stop */}
       <div>
         <button
           onClick={handlePlayPause}
-          className={`w-full py-3 rounded font-semibold transition-colors ${
+          className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg ${
             playbackState.isPlaying
-              ? 'bg-red-600 hover:bg-red-700 text-white'
-              : 'bg-green-600 hover:bg-green-700 text-white'
+              ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white shadow-red-500/50'
+              : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white shadow-green-500/50'
           }`}
         >
           {playbackState.isPlaying ? '⏸ Stop' : '▶ Play'}
@@ -86,15 +89,19 @@ export const Controls: React.FC = () => {
       </div>
 
       {/* FPS Display */}
-      <div className="bg-gray-900 rounded p-3 text-center">
-        <div className="text-2xl font-bold text-blue-400">{fps} FPS</div>
-        <div className="text-xs text-gray-400 mt-1">Rendering Performance</div>
+      <div className="bg-gradient-to-br from-gray-700/50 to-gray-800/50 backdrop-blur-sm rounded-lg p-4 text-center border border-gray-600/50">
+        <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+          {fps} FPS
+        </div>
+        <div className="text-xs text-gray-400 mt-1 uppercase tracking-wide">Rendering Performance</div>
       </div>
 
       {/* Master Brightness / Dimmer */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          💡 Master Brightness: {Math.round(masterBrightness * 100)}%
+      <div className="bg-gradient-to-br from-gray-700/30 to-gray-800/30 backdrop-blur-sm rounded-lg p-4 border border-gray-600/30">
+        <label className="block text-sm font-semibold text-gray-200 mb-3 flex items-center gap-2">
+          <span className="text-lg">💡</span>
+          Master Brightness
+          <span className="ml-auto text-blue-400 font-mono">{Math.round(masterBrightness * 100)}%</span>
         </label>
         <input
           type="range"
@@ -105,12 +112,12 @@ export const Controls: React.FC = () => {
           onChange={(e) => setMasterBrightness(Number(e.target.value))}
           className="w-full"
         />
-        <div className="flex gap-2 mt-2">
+        <div className="flex gap-2 mt-3">
           {[0.25, 0.5, 0.75, 1.0].map((value) => (
             <button
               key={value}
               onClick={() => setMasterBrightness(value)}
-              className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+              className="flex-1 px-2 py-1.5 bg-gray-600/50 hover:bg-blue-600 text-white text-xs rounded-md transition-all duration-200 font-semibold border border-gray-500/30 hover:border-blue-500"
             >
               {Math.round(value * 100)}%
             </button>
@@ -119,9 +126,11 @@ export const Controls: React.FC = () => {
       </div>
 
       {/* BPM Control */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          BPM: {bpm}
+      <div className="bg-gradient-to-br from-gray-700/30 to-gray-800/30 backdrop-blur-sm rounded-lg p-4 border border-gray-600/30">
+        <label className="block text-sm font-semibold text-gray-200 mb-3 flex items-center gap-2">
+          <span className="text-lg">🎵</span>
+          BPM
+          <span className="ml-auto text-purple-400 font-mono">{bpm}</span>
         </label>
         <input
           type="range"
@@ -131,12 +140,12 @@ export const Controls: React.FC = () => {
           onChange={(e) => handleBpmChange(Number(e.target.value))}
           className="w-full"
         />
-        <div className="flex gap-2 mt-2">
+        <div className="flex gap-2 mt-3">
           {[90, 120, 140, 160].map((value) => (
             <button
               key={value}
               onClick={() => handleBpmChange(value)}
-              className="flex-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white text-sm rounded transition-colors"
+              className="flex-1 px-2 py-1.5 bg-gray-600/50 hover:bg-purple-600 text-white text-xs rounded-md transition-all duration-200 font-semibold border border-gray-500/30 hover:border-purple-500"
             >
               {value}
             </button>
@@ -145,9 +154,11 @@ export const Controls: React.FC = () => {
       </div>
 
       {/* Speed Control */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Speed: {speed.toFixed(2)}x
+      <div className="bg-gradient-to-br from-gray-700/30 to-gray-800/30 backdrop-blur-sm rounded-lg p-4 border border-gray-600/30">
+        <label className="block text-sm font-semibold text-gray-200 mb-3 flex items-center gap-2">
+          <span className="text-lg">⚡</span>
+          Speed
+          <span className="ml-auto text-green-400 font-mono">{speed.toFixed(2)}x</span>
         </label>
         <input
           type="range"
@@ -161,9 +172,11 @@ export const Controls: React.FC = () => {
       </div>
 
       {/* Intensity Control */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Intensity: {intensity.toFixed(2)}
+      <div className="bg-gradient-to-br from-gray-700/30 to-gray-800/30 backdrop-blur-sm rounded-lg p-4 border border-gray-600/30">
+        <label className="block text-sm font-semibold text-gray-200 mb-3 flex items-center gap-2">
+          <span className="text-lg">🔆</span>
+          Intensity
+          <span className="ml-auto text-orange-400 font-mono">{intensity.toFixed(2)}</span>
         </label>
         <input
           type="range"
@@ -177,30 +190,34 @@ export const Controls: React.FC = () => {
       </div>
 
       {/* Direction Control */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Direction: [{direction[0].toFixed(1)}, {direction[1].toFixed(1)}]
+      <div className="bg-gradient-to-br from-gray-700/30 to-gray-800/30 backdrop-blur-sm rounded-lg p-4 border border-gray-600/30">
+        <label className="block text-sm font-semibold text-gray-200 mb-3 flex items-center gap-2">
+          <span className="text-lg">🧭</span>
+          Direction
+          <span className="ml-auto text-cyan-400 font-mono text-xs">
+            [{direction[0].toFixed(1)}, {direction[1].toFixed(1)}]
+          </span>
         </label>
         {/* Directional Pad Grid */}
         <div className="grid grid-cols-3 gap-2">
           {/* Row 1 */}
           <button
             onClick={() => handleDirectionChange(-1, 1)}
-            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            className="p-3 bg-gray-600/50 hover:bg-cyan-600 text-white text-lg rounded-lg transition-all duration-200 border border-gray-500/30 hover:border-cyan-500 shadow-sm hover:shadow-lg hover:shadow-cyan-500/30"
             title="Diagonal: Haut-Gauche"
           >
             ↖
           </button>
           <button
             onClick={() => handleDirectionChange(0, 1)}
-            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            className="p-3 bg-gray-600/50 hover:bg-cyan-600 text-white text-lg rounded-lg transition-all duration-200 border border-gray-500/30 hover:border-cyan-500 shadow-sm hover:shadow-lg hover:shadow-cyan-500/30"
             title="Haut"
           >
             ↑
           </button>
           <button
             onClick={() => handleDirectionChange(1, 1)}
-            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            className="p-3 bg-gray-600/50 hover:bg-cyan-600 text-white text-lg rounded-lg transition-all duration-200 border border-gray-500/30 hover:border-cyan-500 shadow-sm hover:shadow-lg hover:shadow-cyan-500/30"
             title="Diagonal: Haut-Droite"
           >
             ↗
@@ -208,21 +225,21 @@ export const Controls: React.FC = () => {
           {/* Row 2 */}
           <button
             onClick={() => handleDirectionChange(-1, 0)}
-            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            className="p-3 bg-gray-600/50 hover:bg-cyan-600 text-white text-lg rounded-lg transition-all duration-200 border border-gray-500/30 hover:border-cyan-500 shadow-sm hover:shadow-lg hover:shadow-cyan-500/30"
             title="Gauche"
           >
             ←
           </button>
           <button
             onClick={() => handleDirectionChange(0, 0)}
-            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            className="p-3 bg-gray-600/50 hover:bg-red-600 text-white text-lg rounded-lg transition-all duration-200 border border-gray-500/30 hover:border-red-500 shadow-sm hover:shadow-lg hover:shadow-red-500/30"
             title="Stop"
           >
             ⏸
           </button>
           <button
             onClick={() => handleDirectionChange(1, 0)}
-            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            className="p-3 bg-gray-600/50 hover:bg-cyan-600 text-white text-lg rounded-lg transition-all duration-200 border border-gray-500/30 hover:border-cyan-500 shadow-sm hover:shadow-lg hover:shadow-cyan-500/30"
             title="Droite"
           >
             →
@@ -230,21 +247,21 @@ export const Controls: React.FC = () => {
           {/* Row 3 */}
           <button
             onClick={() => handleDirectionChange(-1, -1)}
-            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            className="p-3 bg-gray-600/50 hover:bg-cyan-600 text-white text-lg rounded-lg transition-all duration-200 border border-gray-500/30 hover:border-cyan-500 shadow-sm hover:shadow-lg hover:shadow-cyan-500/30"
             title="Diagonal: Bas-Gauche"
           >
             ↙
           </button>
           <button
             onClick={() => handleDirectionChange(0, -1)}
-            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            className="p-3 bg-gray-600/50 hover:bg-cyan-600 text-white text-lg rounded-lg transition-all duration-200 border border-gray-500/30 hover:border-cyan-500 shadow-sm hover:shadow-lg hover:shadow-cyan-500/30"
             title="Bas"
           >
             ↓
           </button>
           <button
             onClick={() => handleDirectionChange(1, -1)}
-            className="p-2 bg-gray-700 hover:bg-gray-600 text-white text-lg rounded transition-colors"
+            className="p-3 bg-gray-600/50 hover:bg-cyan-600 text-white text-lg rounded-lg transition-all duration-200 border border-gray-500/30 hover:border-cyan-500 shadow-sm hover:shadow-lg hover:shadow-cyan-500/30"
             title="Diagonal: Bas-Droite"
           >
             ↘
@@ -253,28 +270,34 @@ export const Controls: React.FC = () => {
       </div>
 
       {/* Color Controls */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Color 1
-          </label>
-          <input
-            type="color"
-            defaultValue="#ff0000"
-            onChange={handleColor1Change}
-            className="w-full h-10 rounded cursor-pointer"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Color 2
-          </label>
-          <input
-            type="color"
-            defaultValue="#0000ff"
-            onChange={handleColor2Change}
-            className="w-full h-10 rounded cursor-pointer"
-          />
+      <div className="bg-gradient-to-br from-gray-700/30 to-gray-800/30 backdrop-blur-sm rounded-lg p-4 border border-gray-600/30">
+        <label className="block text-sm font-semibold text-gray-200 mb-3 flex items-center gap-2">
+          <span className="text-lg">🎨</span>
+          Colors
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-400 mb-2 font-medium">
+              Color 1
+            </label>
+            <input
+              type="color"
+              defaultValue="#ff0000"
+              onChange={handleColor1Change}
+              className="w-full h-12 rounded-lg cursor-pointer border-2 border-gray-600/50 hover:border-pink-500/50 transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-2 font-medium">
+              Color 2
+            </label>
+            <input
+              type="color"
+              defaultValue="#0000ff"
+              onChange={handleColor2Change}
+              className="w-full h-12 rounded-lg cursor-pointer border-2 border-gray-600/50 hover:border-blue-500/50 transition-colors"
+            />
+          </div>
         </div>
       </div>
     </div>

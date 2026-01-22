@@ -80,12 +80,15 @@ export const LayerManager: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4 space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Layers</h2>
+        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+          <span className="w-1 h-5 bg-gradient-to-b from-blue-500 to-purple-500 rounded"></span>
+          Active Layers
+        </h2>
         <button
           onClick={handleAddLayer}
-          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+          className="px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white text-sm rounded-lg shadow-lg transition-all duration-200 transform hover:scale-105 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           disabled={shaders.length === 0}
         >
           + Add Layer
@@ -93,10 +96,12 @@ export const LayerManager: React.FC = () => {
       </div>
 
       {/* Layer List */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         {sortedLayers.length === 0 ? (
-          <div className="text-gray-400 text-sm text-center py-4">
-            No layers yet. Add a shader to get started.
+          <div className="text-center py-8">
+            <div className="text-gray-500 mb-2 text-4xl">📋</div>
+            <p className="text-gray-400 text-sm">No layers yet.</p>
+            <p className="text-gray-500 text-xs mt-1">Add a shader to get started!</p>
           </div>
         ) : (
           sortedLayers.map((layer, index) => {
@@ -106,8 +111,10 @@ export const LayerManager: React.FC = () => {
             return (
               <div
                 key={layer.id}
-                className={`bg-gray-700 rounded p-3 space-y-2 border-2 transition-colors ${
-                  isSelected ? 'border-blue-500' : 'border-transparent'
+                className={`bg-gradient-to-br from-gray-700/80 to-gray-800/80 backdrop-blur-sm rounded-lg p-3 space-y-2 border-2 transition-all duration-200 cursor-pointer ${
+                  isSelected
+                    ? 'border-blue-500 shadow-lg shadow-blue-500/30 scale-105'
+                    : 'border-gray-600/30 hover:border-gray-500/50'
                 }`}
                 onClick={() => setSelectedLayerId(layer.id)}
               >
