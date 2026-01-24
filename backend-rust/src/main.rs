@@ -119,15 +119,15 @@ async fn main() -> anyhow::Result<()> {
             }
         }
 
-        // Skip rendering if not playing or no strips configured
-        if !state.is_playing || state.strips.is_empty() {
+        // Skip rendering if not playing
+        if !state.is_playing {
             continue;
         }
 
         // Calculate current time
         let current_time = state.start_time.elapsed().as_secs_f32();
 
-        // Render layers to RGB matrix
+        // Render layers to RGB matrix (always render for preview, even without strips)
         let rgb_matrix = match cpu_engine.render_layers(
             &state.layers,
             &state.global_params,
@@ -141,16 +141,18 @@ async fn main() -> anyhow::Result<()> {
             }
         };
 
-        // Extract and send data for each strip
-        let mut strip_data = Vec::new();
-        for strip in &state.strips {
-            let data = cpu_engine.extract_strip_data(&rgb_matrix, strip.id - 1); // 0-indexed
-            strip_data.push((strip.id, data));
-        }
+        // Extract and send data for each strip (only if strips are configured)
+        if !state.strips.is_empty() {
+            let mut strip_data = Vec::new();
+            for strip in &state.strips {
+                let data = cpu_engine.extract_strip_data(&rgb_matrix, strip.id - 1); // 0-indexed
+                strip_data.push((strip.id, data));
+            }
 
-        // Send Art-Net packets (async, non-blocking)
-        if let Err(e) = artnet_sender.send_batch(&state.strips, &strip_data).await {
-            error!("Art-Net send error: {}", e);
+            // Send Art-Net packets (async, non-blocking)
+            if let Err(e) = artnet_sender.send_batch(&state.strips, &strip_data).await {
+                error!("Art-Net send error: {}", e);
+            }
         }
 
         // Send frame to WebSocket clients for preview (every frame)
