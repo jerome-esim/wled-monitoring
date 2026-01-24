@@ -507,6 +507,184 @@ input[type="checkbox"] {
   accent-color: var(--accent-primary);
 }
 
+/* Strip Configuration */
+.strip-config {
+  padding: 1.5rem;
+  border-bottom: 2px solid var(--border);
+  background: var(--bg-tertiary);
+}
+
+.strip-config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.5rem 0;
+}
+
+.strip-config-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.strip-config-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.strip-config-actions button {
+  padding: 0.5rem 1rem;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.strip-config-actions button:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.strip-config-actions button.danger {
+  background: var(--error);
+}
+
+.strip-config-actions button.danger:hover {
+  background: #dc2626;
+}
+
+.strip-config-content {
+  margin-top: 1rem;
+}
+
+.no-strips {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  font-style: italic;
+}
+
+.strips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.strip-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.2s;
+}
+
+.strip-item:hover {
+  border-color: var(--accent-primary);
+}
+
+.strip-item.editing {
+  border-color: var(--accent-primary);
+  background: var(--bg-primary);
+}
+
+.strip-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.strip-name {
+  flex: 1;
+  padding: 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.strip-item-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.strip-item-actions button {
+  padding: 0.25rem 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.strip-item-actions button:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.strip-item-actions .delete-btn {
+  color: var(--error);
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.strip-item-details {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.form-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.form-row input,
+.form-row select {
+  padding: 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+.strip-info {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+.strip-item-summary {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
 /* Responsive */
 @media (max-width: 1200px) {
   .right-panel {

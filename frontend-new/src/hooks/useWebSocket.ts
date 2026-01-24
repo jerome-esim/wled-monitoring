@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { ClientMessage, ServerMessage, ShaderLayer, ShaderParams } from '../types';
+import type { ClientMessage, ServerMessage, ShaderLayer, ShaderParams, StripConfig } from '../types';
 
 const WS_URL = 'ws://localhost:3001/ws';
 const RECONNECT_DELAY = 2000;
@@ -113,6 +113,11 @@ export function useWebSocket() {
     send({ type: 'updateLayers', layers });
   }, [send]);
 
+  const updateStrips = useCallback((strips: StripConfig[]) => {
+    console.log('Sending strips to backend:', strips.length, 'strips');
+    send({ type: 'updateStrips', strips });
+  }, [send]);
+
   const updateGlobalParams = useCallback((params: ShaderParams) => {
     send({ type: 'updateGlobalParams', params });
   }, [send]);
@@ -128,6 +133,7 @@ export function useWebSocket() {
   return {
     ...state,
     updateLayers,
+    updateStrips,
     updateGlobalParams,
     setPlaying,
     setMasterBrightness

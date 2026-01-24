@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useWebSocket } from './hooks/useWebSocket';
-import { ShaderLayer } from './types';
+import { useLocalStorage } from './hooks/useLocalStorage';
+import { ShaderLayer, StripConfig, DEFAULT_STRIPS } from './types';
 import { Preview } from './components/Preview';
 import { LayerList } from './components/LayerList';
 import { PlaybackControls } from './components/PlaybackControls';
+import { StripConfigComponent } from './components/StripConfig';
 import './App.css';
 
 function App() {
@@ -13,11 +15,13 @@ function App() {
     frameData,
     error,
     updateLayers,
+    updateStrips,
     setPlaying,
     setMasterBrightness
   } = useWebSocket();
 
   const [layers, setLayers] = useState<ShaderLayer[]>([]);
+  const [strips, setStrips] = useLocalStorage<StripConfig[]>('wled-strips', DEFAULT_STRIPS);
   const [isPlaying, setIsPlaying] = useState(false);
   const [masterBrightness, setMasterBrightnessState] = useState(1.0);
 
@@ -28,6 +32,14 @@ function App() {
       updateLayers(layers);
     }
   }, [layers, connected, updateLayers]);
+
+  // Send strips to backend whenever they change
+  useEffect(() => {
+    if (connected) {
+      console.log('Sending strips to backend:', strips.length, 'strips');
+      updateStrips(strips);
+    }
+  }, [strips, connected, updateStrips]);
 
   // Log connection status
   useEffect(() => {
@@ -77,6 +89,7 @@ function App() {
 
       <div className="app-content">
         <div className="left-panel">
+          <StripConfigComponent strips={strips} onChange={setStrips} />
           <LayerList layers={layers} onChange={setLayers} />
         </div>
 

@@ -36,7 +36,31 @@ export interface StripConfig {
   startChannel: number;
   ledCount: number;
   ipAddress: string;
+  position?: { x: number; y: number };
+  orientation?: 'horizontal' | 'vertical';
 }
+
+// Default strip configuration - Jerome's Live Setup
+export const DEFAULT_STRIPS: StripConfig[] = [
+  // Controller 1 - 192.168.8.10 (Strips 1-4)
+  { id: 1, name: 'Front Bar', universe: 0, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.10', position: { x: 50, y: 50 }, orientation: 'horizontal' },
+  { id: 2, name: 'Left Side', universe: 2, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.10', position: { x: 200, y: 50 }, orientation: 'horizontal' },
+  { id: 3, name: 'Right Side', universe: 4, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.10', position: { x: 350, y: 50 }, orientation: 'horizontal' },
+  { id: 4, name: 'Back Bar', universe: 6, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.10', position: { x: 500, y: 50 }, orientation: 'horizontal' },
+
+  // Controller 2 - 192.168.8.11 (Strips 5-9)
+  { id: 5, name: 'Center 1', universe: 0, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.11', position: { x: 50, y: 200 }, orientation: 'vertical' },
+  { id: 6, name: 'Center 2', universe: 2, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.11', position: { x: 200, y: 200 }, orientation: 'vertical' },
+  { id: 7, name: 'Center 3', universe: 4, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.11', position: { x: 350, y: 200 }, orientation: 'vertical' },
+  { id: 8, name: 'Center 4', universe: 6, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.11', position: { x: 500, y: 200 }, orientation: 'vertical' },
+  { id: 9, name: 'Center 5', universe: 8, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.11', position: { x: 650, y: 200 }, orientation: 'vertical' },
+
+  // Controller 3 - 192.168.8.12 (Strips 10-13)
+  { id: 10, name: 'Top 1', universe: 0, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.12', position: { x: 50, y: 350 }, orientation: 'horizontal' },
+  { id: 11, name: 'Top 2', universe: 2, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.12', position: { x: 200, y: 350 }, orientation: 'horizontal' },
+  { id: 12, name: 'Top 3', universe: 4, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.12', position: { x: 350, y: 350 }, orientation: 'horizontal' },
+  { id: 13, name: 'Top 4', universe: 6, startChannel: 1, ledCount: 250, ipAddress: '192.168.8.12', position: { x: 500, y: 350 }, orientation: 'horizontal' },
+];
 
 // WebSocket Messages - Client to Server
 export type ClientMessage =
