@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface PreviewProps {
   frameData: { data: string; width: number; height: number } | null;
@@ -8,6 +8,7 @@ interface PreviewProps {
 export function Preview({ frameData, fps }: PreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const STRIP_WIDTH = 20; // Pixels per strip (width multiplier)
+  const [canvasSize, setCanvasSize] = useState({ width: 260, height: 250 }); // Default: 13 strips × 250 LEDs
 
   useEffect(() => {
     if (!frameData || !canvasRef.current) {
@@ -40,12 +41,17 @@ export function Preview({ frameData, fps }: PreviewProps) {
         firstPixel: [rgbBytes[0], rgbBytes[1], rgbBytes[2]]
       });
 
-      const stripCount = frameData.width;   // 13 strips
-      const ledCount = frameData.height;     // 250 LEDs per strip
+      const stripCount = frameData.width;   // Number of strips (e.g., 13, 20, etc.)
+      const ledCount = frameData.height;     // LEDs per strip (e.g., 250)
+
+      // Update canvas size state for display
+      const newWidth = stripCount * STRIP_WIDTH;
+      const newHeight = ledCount;
+      setCanvasSize({ width: newWidth, height: newHeight });
 
       // Set canvas size with wider strips
-      canvas.width = stripCount * STRIP_WIDTH;
-      canvas.height = ledCount;
+      canvas.width = newWidth;
+      canvas.height = newHeight;
 
       // Draw each LED as a rectangle
       for (let strip = 0; strip < stripCount; strip++) {
@@ -79,8 +85,8 @@ export function Preview({ frameData, fps }: PreviewProps) {
         <canvas
           ref={canvasRef}
           className="preview-canvas"
-          width={13 * 20}
-          height={250}
+          width={canvasSize.width}
+          height={canvasSize.height}
         />
       </div>
     </div>
