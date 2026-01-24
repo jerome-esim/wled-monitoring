@@ -16,11 +16,11 @@ export function LayerList({ layers, onChange }: LayerListProps) {
 
     const newLayer: ShaderLayer = {
       id: `layer-${Date.now()}`,
-      shader_id: shaderId,
+      shaderId: shaderId,
       name: shaderDef.name,
       enabled: true,
       opacity: 1.0,
-      blend_mode: 'normal',
+      blendMode: 'normal',
       order: layers.length,
       params: {}
     };
@@ -121,9 +121,9 @@ export function LayerList({ layers, onChange }: LayerListProps) {
                 />
                 <span className="layer-name">{layer.name}</span>
                 <span className="layer-info">
-                  {AVAILABLE_SHADERS.find(s => s.id === layer.shader_id)?.name} •
+                  {AVAILABLE_SHADERS.find(s => s.id === layer.shaderId)?.name} •
                   Opacity: {Math.round(layer.opacity * 100)}% •
-                  {layer.blend_mode}
+                  {layer.blendMode}
                 </span>
               </div>
 

@@ -8,23 +8,23 @@ export interface ShaderParams {
   speed?: number;
   intensity?: number;
   density?: number;
-  chaser_size?: number;
-  trail_length?: number;
+  chaserSize?: number;
+  trailLength?: number;
   reverse?: number;  // 0.0 or 1.0
   direction?: [number, number];  // [x, y]
   bpm?: number;
-  warmup_duration?: number;
-  on_duration?: number;
-  off_duration?: number;
+  warmupDuration?: number;
+  onDuration?: number;
+  offDuration?: number;
 }
 
 export interface ShaderLayer {
   id: string;
-  shader_id: string;
+  shaderId: string;
   name: string;
   enabled: boolean;
   opacity: number;  // 0.0-1.0
-  blend_mode: BlendMode;
+  blendMode: BlendMode;
   order: number;
   params: ShaderParams;
 }
@@ -33,9 +33,9 @@ export interface StripConfig {
   id: number;
   name: string;
   universe: number;
-  start_channel: number;
-  led_count: number;
-  ip_address: string;
+  startChannel: number;
+  ledCount: number;
+  ipAddress: string;
 }
 
 // WebSocket Messages - Client to Server
@@ -77,8 +77,8 @@ export const AVAILABLE_SHADERS: ShaderDefinition[] = [
     params: {
       speed: { label: 'Speed', type: 'number', min: 0.1, max: 5, step: 0.1, default: 1.0 },
       density: { label: 'Density', type: 'number', min: 1, max: 10, step: 1, default: 1 },
-      chaser_size: { label: 'Chaser Size', type: 'number', min: 0.01, max: 0.2, step: 0.01, default: 0.05 },
-      trail_length: { label: 'Trail Length', type: 'number', min: 0.01, max: 0.5, step: 0.01, default: 0.1 },
+      chaserSize: { label: 'Chaser Size', type: 'number', min: 0.01, max: 0.2, step: 0.01, default: 0.05 },
+      trailLength: { label: 'Trail Length', type: 'number', min: 0.01, max: 0.5, step: 0.01, default: 0.1 },
       reverse: { label: 'Reverse', type: 'boolean', default: false },
       color1: { label: 'Color 1', type: 'color', default: [1, 0, 0, 1] },
       color2: { label: 'Color 2', type: 'color', default: [0, 0, 1, 1] }
@@ -91,8 +91,8 @@ export const AVAILABLE_SHADERS: ShaderDefinition[] = [
     params: {
       speed: { label: 'Speed', type: 'number', min: 0.1, max: 5, step: 0.1, default: 1.0 },
       density: { label: 'Density', type: 'number', min: 1, max: 10, step: 1, default: 1 },
-      chaser_size: { label: 'Chaser Size', type: 'number', min: 0.01, max: 0.2, step: 0.01, default: 0.05 },
-      trail_length: { label: 'Trail Length', type: 'number', min: 0.01, max: 0.5, step: 0.01, default: 0.1 },
+      chaserSize: { label: 'Chaser Size', type: 'number', min: 0.01, max: 0.2, step: 0.01, default: 0.05 },
+      trailLength: { label: 'Trail Length', type: 'number', min: 0.01, max: 0.5, step: 0.01, default: 0.1 },
       reverse: { label: 'Reverse', type: 'boolean', default: false },
       color1: { label: 'Color 1', type: 'color', default: [0, 1, 0, 1] },
       color2: { label: 'Color 2', type: 'color', default: [0, 0, 1, 1] }
@@ -128,7 +128,7 @@ export const AVAILABLE_SHADERS: ShaderDefinition[] = [
       speed: { label: 'Speed', type: 'number', min: 0.1, max: 5, step: 0.1, default: 1.0 },
       color1: { label: 'Color 1', type: 'color', default: [1, 0.5, 0, 1] },
       color2: { label: 'Color 2', type: 'color', default: [0.5, 0, 1, 1] },
-      trail_length: { label: 'Trail Length', type: 'number', min: 0.01, max: 0.5, step: 0.01, default: 0.1 }
+      trailLength: { label: 'Trail Length', type: 'number', min: 0.01, max: 0.5, step: 0.01, default: 0.1 }
     }
   },
   {
@@ -140,9 +140,9 @@ export const AVAILABLE_SHADERS: ShaderDefinition[] = [
       density: { label: 'Density', type: 'number', min: 1, max: 10, step: 1, default: 1 },
       color1: { label: 'Color 1', type: 'color', default: [1, 0, 0.5, 1] },
       color2: { label: 'Color 2', type: 'color', default: [0, 0.5, 1, 1] },
-      warmup_duration: { label: 'Warmup Duration', type: 'number', min: 0.1, max: 2, step: 0.1, default: 0.5 },
-      on_duration: { label: 'On Duration', type: 'number', min: 0.5, max: 5, step: 0.1, default: 2.0 },
-      off_duration: { label: 'Off Duration', type: 'number', min: 0.1, max: 2, step: 0.1, default: 0.3 }
+      warmupDuration: { label: 'Warmup Duration', type: 'number', min: 0.1, max: 2, step: 0.1, default: 0.5 },
+      onDuration: { label: 'On Duration', type: 'number', min: 0.5, max: 5, step: 0.1, default: 2.0 },
+      offDuration: { label: 'Off Duration', type: 'number', min: 0.1, max: 2, step: 0.1, default: 0.3 }
     }
   }
 ];
