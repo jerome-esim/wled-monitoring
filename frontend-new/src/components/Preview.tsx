@@ -47,10 +47,11 @@ export function Preview({ frameData, fps }: PreviewProps) {
       for (let i = 0; i < width * height; i++) {
         const rgbIndex = i * 3;
         const rgbaIndex = i * 4;
-        rgbaBytes[rgbaIndex] = rgbBytes[rgbIndex];     // R
+        // Copy RGB values from source to RGBA destination
+        rgbaBytes[rgbaIndex + 0] = rgbBytes[rgbIndex + 0]; // R
         rgbaBytes[rgbaIndex + 1] = rgbBytes[rgbIndex + 1]; // G
         rgbaBytes[rgbaIndex + 2] = rgbBytes[rgbIndex + 2]; // B
-        rgbaBytes[rgbaIndex + 3] = 255;                // A (fully opaque)
+        rgbaBytes[rgbaIndex + 3] = 255;                    // A (fully opaque)
       }
 
       // Create ImageData and draw to canvas
