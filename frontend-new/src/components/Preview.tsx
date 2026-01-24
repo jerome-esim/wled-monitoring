@@ -15,14 +15,37 @@ export function Preview({ frameData, fps }: PreviewProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Decode base64 image data
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = frameData.width;
-      canvas.height = frameData.height;
-      ctx.drawImage(img, 0, 0);
-    };
-    img.src = `data:image/png;base64,${frameData.data}`;
+    try {
+      // Decode base64 RGB data
+      const binaryString = atob(frameData.data);
+      const len = binaryString.length;
+      const rgbBytes = new Uint8ClampedArray(len);
+      for (let i = 0; i < len; i++) {
+        rgbBytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // Convert RGB to RGBA for canvas ImageData
+      const width = frameData.width;
+      const height = frameData.height;
+      const rgbaBytes = new Uint8ClampedArray(width * height * 4);
+
+      for (let i = 0; i < width * height; i++) {
+        const rgbIndex = i * 3;
+        const rgbaIndex = i * 4;
+        rgbaBytes[rgbaIndex] = rgbBytes[rgbIndex];     // R
+        rgbaBytes[rgbaIndex + 1] = rgbBytes[rgbIndex + 1]; // G
+        rgbaBytes[rgbaIndex + 2] = rgbBytes[rgbIndex + 2]; // B
+        rgbaBytes[rgbaIndex + 3] = 255;                // A (fully opaque)
+      }
+
+      // Create ImageData and draw to canvas
+      canvas.width = width;
+      canvas.height = height;
+      const imageData = new ImageData(rgbaBytes, width, height);
+      ctx.putImageData(imageData, 0, 0);
+    } catch (error) {
+      console.error('Failed to render frame:', error);
+    }
   }, [frameData]);
 
   return (

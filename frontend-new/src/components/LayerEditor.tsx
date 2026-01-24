@@ -20,7 +20,7 @@ export function LayerEditor({
   canMoveUp,
   canMoveDown
 }: LayerEditorProps) {
-  const shaderDef = AVAILABLE_SHADERS.find(s => s.id === layer.shader_id);
+  const shaderDef = AVAILABLE_SHADERS.find(s => s.id === layer.shaderId);
 
   const updateParam = (key: string, value: any) => {
     onChange({
@@ -91,8 +91,8 @@ export function LayerEditor({
           <div className="param-control">
             <label>Blend Mode</label>
             <select
-              value={layer.blend_mode}
-              onChange={(e) => updateLayerProp('blend_mode', e.target.value as BlendMode)}
+              value={layer.blendMode}
+              onChange={(e) => updateLayerProp('blendMode', e.target.value as BlendMode)}
             >
               <option value="normal">Normal</option>
               <option value="add">Add</option>
