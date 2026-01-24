@@ -24,11 +24,29 @@ function App() {
   // Send layers to backend whenever they change
   useEffect(() => {
     if (connected) {
+      console.log('Sending layers to backend:', layers.length, 'layers');
       updateLayers(layers);
     }
   }, [layers, connected, updateLayers]);
 
+  // Log connection status
+  useEffect(() => {
+    console.log('WebSocket connected:', connected);
+  }, [connected]);
+
+  // Log playing status and frame data
+  useEffect(() => {
+    console.log('Playing status:', isPlaying);
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (frameData) {
+      console.log('App: Frame data received');
+    }
+  }, [frameData]);
+
   const handlePlayPause = (playing: boolean) => {
+    console.log('Play/Pause clicked:', playing);
     setIsPlaying(playing);
     setPlaying(playing);
   };

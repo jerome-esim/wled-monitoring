@@ -40,11 +40,19 @@ export function useWebSocket() {
         try {
           const message: ServerMessage = JSON.parse(event.data);
 
+          console.log('WebSocket message received:', message.type);
+
           switch (message.type) {
             case 'fpsUpdate':
+              console.log('FPS Update:', message.fps);
               setState(prev => ({ ...prev, fps: message.fps }));
               break;
             case 'frameUpdate':
+              console.log('Frame Update:', {
+                width: message.width,
+                height: message.height,
+                dataLength: message.data.length
+              });
               setState(prev => ({
                 ...prev,
                 frameData: {
@@ -55,11 +63,12 @@ export function useWebSocket() {
               }));
               break;
             case 'error':
+              console.error('Server error:', message.message);
               setState(prev => ({ ...prev, error: message.message }));
               break;
           }
         } catch (err) {
-          console.error('Failed to parse WebSocket message:', err);
+          console.error('Failed to parse WebSocket message:', err, event.data.substring(0, 100));
         }
       };
 

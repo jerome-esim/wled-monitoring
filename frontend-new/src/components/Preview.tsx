@@ -9,13 +9,22 @@ export function Preview({ frameData, fps }: PreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (!frameData || !canvasRef.current) return;
+    if (!frameData || !canvasRef.current) {
+      console.log('Preview: No frameData or canvas ref', { frameData: !!frameData, canvas: !!canvasRef.current });
+      return;
+    }
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     try {
+      console.log('Preview: Rendering frame', {
+        width: frameData.width,
+        height: frameData.height,
+        dataLength: frameData.data.length
+      });
+
       // Decode base64 RGB data
       const binaryString = atob(frameData.data);
       const len = binaryString.length;
@@ -23,6 +32,12 @@ export function Preview({ frameData, fps }: PreviewProps) {
       for (let i = 0; i < len; i++) {
         rgbBytes[i] = binaryString.charCodeAt(i);
       }
+
+      console.log('Preview: Decoded', {
+        expectedBytes: frameData.width * frameData.height * 3,
+        actualBytes: len,
+        firstPixel: [rgbBytes[0], rgbBytes[1], rgbBytes[2]]
+      });
 
       // Convert RGB to RGBA for canvas ImageData
       const width = frameData.width;
@@ -43,6 +58,7 @@ export function Preview({ frameData, fps }: PreviewProps) {
       canvas.height = height;
       const imageData = new ImageData(rgbaBytes, width, height);
       ctx.putImageData(imageData, 0, 0);
+      console.log('Preview: Frame rendered successfully');
     } catch (error) {
       console.error('Failed to render frame:', error);
     }
